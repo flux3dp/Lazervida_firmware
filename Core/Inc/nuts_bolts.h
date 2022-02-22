@@ -44,7 +44,6 @@
 // Conversions
 #define MM_PER_INCH (25.40)
 #define INCH_PER_MM (0.0393701)
-#define TICKS_PER_MICROSECOND (STEPPER_TIMER_TICK_FREQ/1000000) // "Stepper" timer tick frequency
 
 #define DELAY_MODE_DWELL       0
 #define DELAY_MODE_SYS_SUSPEND 1

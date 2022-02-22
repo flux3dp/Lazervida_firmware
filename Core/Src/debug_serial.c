@@ -15,13 +15,13 @@ volatile uint8_t debug_serial_rx_buffer_tail = 0;
 
 
 void debug_serial_init() {
-  MX_USART1_UART_Init();
-  NVIC_DisableIRQ(USART1_IRQn);
+  //MX_USART1_UART_Init();
+  //NVIC_DisableIRQ(USART1_IRQn);
   /* === Tx send without interrupt (blocking send) === */
 
   /* ====================== Rx interrupt setup ====================== */
-  LL_USART_EnableIT_RXNE(USART1);
-  NVIC_EnableIRQ(USART1_IRQn);
+  //LL_USART_EnableIT_RXNE(USART1);
+  //NVIC_EnableIRQ(USART1_IRQn);
 }
 
 void debug_serial_rx_handler() {

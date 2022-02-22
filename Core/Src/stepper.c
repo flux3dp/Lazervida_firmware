@@ -48,10 +48,10 @@
 // and timer accuracy.  Do not alter these settings unless you know what you are doing.
 #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
 	#define MAX_AMASS_LEVEL 3
+  uint32_t AMASS_LEVEL1;
+  uint32_t AMASS_LEVEL2;
+  uint32_t AMASS_LEVEL3;
 	// AMASS_LEVEL0: Normal operation. No AMASS. No upper cutoff frequency. Starts at LEVEL1 cutoff frequency.
-	#define AMASS_LEVEL1 (STEPPER_TIMER_TICK_FREQ/8000) // Over-drives ISR (x2). Defined as STEPPER_TIMER_TICK_FREQ/(Cutoff frequency in Hz)
-	#define AMASS_LEVEL2 (STEPPER_TIMER_TICK_FREQ/4000) // Over-drives ISR (x4)
-	#define AMASS_LEVEL3 (STEPPER_TIMER_TICK_FREQ/2000) // Over-drives ISR (x8)
 
   #if MAX_AMASS_LEVEL <= 0
     error "AMASS must have 1 or more levels to operate correctly."
@@ -429,6 +429,12 @@ void stepper_init()
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+#ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
+  // WARNING: STEPPER_TIMER_TICK_FREQ must have been initialized
+	AMASS_LEVEL1 = STEPPER_TIMER_TICK_FREQ/8000; // Over-drives ISR (x2). Defined as STEPPER_TIMER_TICK_FREQ/(Cutoff frequency in Hz)
+	AMASS_LEVEL2 = STEPPER_TIMER_TICK_FREQ/4000; // Over-drives ISR (x4)
+	AMASS_LEVEL3 = STEPPER_TIMER_TICK_FREQ/2000; // Over-drives ISR (x8)
+#endif
 }
 
 
@@ -852,8 +858,8 @@ void st_prep_buffer()
     float inv_rate = dt/(last_n_steps_remaining - step_dist_remaining); // Compute adjusted step rate inverse
 
     // Compute CPU cycles per step for the prepped segment.
-    uint32_t cycles = ceil( (TICKS_PER_MICROSECOND*1000000*60)*inv_rate ); // (cycles/step)
-
+    // WARNING: Should be aware of the max value of uint32_t (the calculated value might exceed this max)
+    uint32_t cycles = (uint32_t)ceilf((TICKS_PER_MICROSECOND * 1000000) *inv_rate * 60); // (cycles/step)
     #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
       // Compute step timing and multi-axis smoothing level.
       // NOTE: AMASS overdrives the timer with each level, so only one prescalar is required.

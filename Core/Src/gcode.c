@@ -353,6 +353,14 @@ uint8_t gc_execute_line(char *line)
             printString("\n");
             return (STATUS_OK);
             break;
+          case 15:
+            set_stepper_power();
+            return (STATUS_OK);
+            break;
+          case 16:
+            reset_stepper_power();
+            break;
+            return (STATUS_OK);
         }
         break;
 

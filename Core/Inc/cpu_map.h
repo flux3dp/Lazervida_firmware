@@ -61,6 +61,7 @@ extern void laser_enable_mask_init();
 extern uint16_t read_limit_port();
 
 extern uint32_t STEPPER_TIMER_TICK_FREQ;
+extern uint32_t TICKS_PER_MICROSECOND;  // The stepper timer tick per us
 
 // Variable spindle configuration below. Do not change unless you know what you are doing.
 // NOTE: Only used when variable spindle is enabled.

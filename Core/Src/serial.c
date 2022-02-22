@@ -72,7 +72,7 @@ void serial_init()
 // Writes one byte to the TX serial buffer. Called by main program.
 void serial_write(uint8_t data) {
   // Temporary: delegate to debug serial port
-  debug_serial_write_data(data);
+  //debug_serial_write_data(data);
   
   // Actual: USB CDC
   uint8_t ret = USBD_BUSY;
@@ -124,7 +124,7 @@ ISR(SERIAL_UDRE)
 uint8_t serial_read()
 { 
   // Delegate to debug port for test without USB only
-  // return debug_serial_read();
+  //return debug_serial_read();
   
   uint8_t tail = serial_rx_buffer_tail; // Temporary serial_rx_buffer_tail (to optimize for volatile)
   if (serial_rx_buffer_head == tail) {

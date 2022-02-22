@@ -34,6 +34,7 @@ static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
 
 static void protocol_exec_rt_suspend();
 
+
 /*
   GRBL PRIMARY LOOP:
 */
