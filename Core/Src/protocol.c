@@ -34,12 +34,24 @@ static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
 
 static void protocol_exec_rt_suspend();
 
+void initial_homing() {
+  if (bit_isfalse(settings.flags,BITFLAG_HOMING_ENABLE)) {return(STATUS_SETTING_DISABLED); }
+  // if (system_check_safety_door_ajar()) { return(STATUS_CHECK_DOOR); } // Block if safety door is ajar.
+  sys.state = STATE_HOMING; // Set system state variable
+  mc_homing_cycle(HOMING_CYCLE_ALL);
+  if (!sys.abort) {  // Execute startup scripts after successful homing.
+    sys.state = STATE_IDLE; // Set to IDLE when complete.
+    st_go_idle(); // Set steppers to the settings idle state before returning.
+  }
+}
 
 /*
   GRBL PRIMARY LOOP:
 */
 void protocol_main_loop()
 {
+  initial_homing();
+
   // Perform some machine checks to make sure everything is good to go.
   #ifdef CHECK_LIMITS_AT_INIT
     if (bit_istrue(settings.flags, BITFLAG_HARD_LIMIT_ENABLE)) {

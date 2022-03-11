@@ -106,6 +106,7 @@ ISR(CONTROL_INT_vect)
 // Executes user startup script, if stored.
 void system_execute_startup(char *line)
 {
+  /*
   uint8_t n;
   for (n=0; n < N_STARTUP_LINE; n++) {
     if (!(settings_read_startup_line(n, line))) {
@@ -118,6 +119,7 @@ void system_execute_startup(char *line)
       }
     }
   }
+  */
 }
 
 
