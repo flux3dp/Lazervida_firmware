@@ -178,8 +178,12 @@ void protocol_main_loop()
     if (cmd_process_locker.value) {
       unlock_bits = cmd_process_locker.value & cmd_process_unlocker.value;
       if (unlock_bits) {
-        cmd_process_locker.value &= unlock_bits;
         cmd_process_locker.value &= (~unlock_bits);
+        cmd_process_unlocker.value &= (~unlock_bits);
+        if (is_printing_fast_raster_line() && 
+            is_fast_raster_mode_no_pixel_remained()) {
+          fast_raster_mode_finish_current_line();
+        }
       }
       if (cmd_process_locker.value == 0) {
         // Execute the last (postponed) cmd again when unlocked

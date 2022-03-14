@@ -211,17 +211,17 @@ int fast_raster_mode_start_print_new_line()
 
       fast_raster_print_ctx.current_line_step_cnt = 0;
 
-      //printf("Start Printing Line\n");
+      //printString("[DEBUG: Start Printing Line]\n");
 
       return 0;
     } else {
-      //printf("DEBUG: NREADY\n");
+      //printString("[DEBUG: NREADY]\n");
     }
   } else if (fast_raster_print_ctx.current_printing_line.status == kLinePatternPrinting ){
     //printf("DEBUG: Current Line Printing\n");
-    //printf("DEBUG: CLP\n");
+    //printString("[DEBUG: CLP]\n");
   } else {
-    //printf("DEBUG: ELSE\n");
+    //printString("[DEBUG: ELSE]\n");
   }
 
   return -1;

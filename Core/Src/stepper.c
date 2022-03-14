@@ -299,6 +299,14 @@ void st_go_idle()
   // NOTE: MS1 high -> save power and lower the heat dissipated
   //set_stepper_MS1();
   reset_stepper_power();
+
+  if (plan_get_block_buffer_count() != 0) {
+    // Just a Pause, might resume later
+  } else {
+    if (cmd_process_locker.fast_raster_print) {
+      cmd_process_unlocker.fast_raster_print = 1;
+    }
+  }
 }
 
 bool st_is_current_prep_block_empty() {
@@ -1075,7 +1083,10 @@ void major_step_ctrl_ISR(
 
       #ifdef VARIABLE_SPINDLE
         // Set real-time spindle output as segment is loaded, just prior to the first step.
-        spindle_set_speed(st.exec_segment->spindle_pwm);
+        spindle_set_speed(st.exec_segment->spindle_pwm, true);
+        if (is_in_fast_raster_mode()) {
+          spindle_set_speed(SPINDLE_PWM_OFF_VALUE, false);
+        }
       #endif
 
     } else {
@@ -1083,7 +1094,7 @@ void major_step_ctrl_ISR(
       st_go_idle();
       #ifdef VARIABLE_SPINDLE
         // Ensure pwm is set properly upon completion of rate-controlled motion.
-        if (st.exec_block->is_pwm_rate_adjusted) { spindle_set_speed(SPINDLE_PWM_OFF_VALUE); }
+        if (st.exec_block->is_pwm_rate_adjusted) { spindle_set_speed(SPINDLE_PWM_OFF_VALUE, true); }
       #endif
       system_set_exec_state_flag(EXEC_CYCLE_STOP); // Flag main program for cycle end
       return; // Nothing to do but exit.
@@ -1114,6 +1125,24 @@ void major_step_ctrl_ISR(
     st.counter_x -= st.exec_block->step_event_count;
     if (st.exec_block->direction_bits & DIRECTION_PIN[X_AXIS]) { sys_position[X_AXIS]--; }
     else { sys_position[X_AXIS]++; }
+
+    // ================== Start of FLUX's dedicated code ==================
+    #ifdef VARIABLE_SPINDLE
+      if (is_in_fast_raster_mode()) {
+        if (is_on_fast_raster_mode_pixel_boundary()) {
+          if (fast_raster_mode_pop_printing_bit()) { // Black pixel
+            //printString("B");
+            spindle_set_speed(cached_laser_pwm, false);
+          } else { // White pixel
+            //printString("W");
+            spindle_set_speed(SPINDLE_PWM_OFF_VALUE, false);
+          }
+        }
+        fast_raster_mode_inc_one_step();
+      }
+    #endif
+    // ================== End of FLUX's dedicated code ==================
+
   }
   #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
     st.counter_y += st.steps[Y_AXIS];

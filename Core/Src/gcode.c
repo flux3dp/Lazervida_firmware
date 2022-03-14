@@ -381,7 +381,6 @@ uint8_t gc_execute_line(const char *line)
               cmd_process_locker.fast_raster_print = 1;
               return (STATUS_GCODE_CMD_LOCKED);
             }
-            printString("[DEBUG: Enter fast raster mode]\n");
             fast_raster_mode_switch_off(); // Reset fast raster mode context first
             set_fast_raster_print_resolution(kRasterHighRes); // default: High Res
             if(line[char_counter] == 'R') // D0R[Resolution]
@@ -426,13 +425,13 @@ uint8_t gc_execute_line(const char *line)
               if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
                 cmd_process_locker.fast_raster_print = 1;
                 return (STATUS_GCODE_CMD_LOCKED);
-              } else if (fast_raster_print_DPL_handler() == false) { // Still busy
+              }
+              if (fast_raster_print_DPL_handler() == false) { // Still busy
                 cmd_process_locker.fast_raster_print = 1;
                 return (STATUS_GCODE_CMD_LOCKED);
               }
               // Ready
               // Force turn off laser just in case (might be redundant)
-              printString("[DEBUG: Start next raster line]\n");
               //ResetSpindleEnablebit();
               //spindle_fast_switch(SPINDLE_PWM1_OFF_VALUE);
               return (STATUS_OK);
@@ -444,7 +443,6 @@ uint8_t gc_execute_line(const char *line)
               cmd_process_locker.fast_raster_print = 1;
               return (STATUS_GCODE_CMD_LOCKED);
             }
-            printString("[DEBUG: Exit fast raster mode]\n");
             spindle_stop(); // for safety, in case spindle not stop
             // All raster line prints must have been completed
             fast_raster_mode_switch_off(); // Switch off at the end of this command
