@@ -52,6 +52,8 @@ void st_parking_restore_buffer();
 // Reloads step segment buffer. Called continuously by realtime execution system.
 void st_prep_buffer();
 
+bool st_prep_buffer_empty();
+
 // Used to check whether any motion is being executed
 bool st_is_current_prep_block_empty(); 
 

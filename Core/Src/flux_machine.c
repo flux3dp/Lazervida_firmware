@@ -7,6 +7,9 @@
 
 extern system_t sys;
 
+volatile cmd_process_locker_t cmd_process_locker;
+volatile cmd_process_unlocker_t cmd_process_unlocker;
+
 void flux_periodic_handling() {
   /*
   if (door_is_open()) {

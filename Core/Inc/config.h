@@ -460,8 +460,8 @@
 // 115200 baud will take 5 msec to transmit a typical 55 character report. Worst case reports are
 // around 90-100 characters. As long as the serial TX buffer doesn't get continually maxed, Grbl
 // will continue operating efficiently. Size the TX buffer around the size of a worst-case report.
-#define RX_BUFFER_SIZE 256 // (1-254) Uncomment to override defaults in serial.h
-#define TX_BUFFER_SIZE 256 // (1-254)
+#define RX_BUFFER_SIZE 255 // (1-254) Uncomment to override defaults in serial.h
+#define TX_BUFFER_SIZE 255 // (1-254)
 
 // A simple software debouncing feature for hard limit switches. When enabled, the interrupt 
 // monitoring the hard limit switch pins will enable the Arduino's watchdog timer to re-check 

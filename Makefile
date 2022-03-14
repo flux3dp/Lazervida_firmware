@@ -95,7 +95,8 @@ Core/Src/sensors.c \
 Core/Src/peripherals.c \
 Core/Src/flux_machine.c \
 Core/Src/debug_serial.c \
-Core/Src/lwrb.c
+Core/Src/lwrb.c \
+Core/Src/fast_raster_print.c
 
 # ASM sources
 ASM_SOURCES =  \

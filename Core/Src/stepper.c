@@ -448,6 +448,9 @@ void st_update_plan_block_parameters()
   }
 }
 
+bool st_prep_buffer_empty() {
+  return (segment_buffer_head == segment_buffer_tail);
+}
 
 // Increments the step segment buffer block data ring buffer.
 static uint8_t st_next_block_index(uint8_t block_index)

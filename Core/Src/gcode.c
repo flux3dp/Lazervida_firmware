@@ -23,6 +23,7 @@
 #include "peripherals.h"
 #include "sensors.h"
 #include "flux_machine.h"
+#include "fast_raster_print.h"
 
 // NOTE: Max line number is defined by the g-code standard to be 99999. It seems to be an
 // arbitrary value, and some GUIs may require more. So we increased it based on a max safe
@@ -66,7 +67,13 @@ void gc_sync_position()
 // characters have been removed. In this function, all units and positions are converted and
 // exported to grbl's internal functions in terms of (mm, mm/min) and absolute machine
 // coordinates, respectively.
-uint8_t gc_execute_line(char *line)
+/**
+ * @brief 
+ * 
+ * @param line 
+ * @return uint8_t STATUS code for response
+ */
+uint8_t gc_execute_line(const char *line)
 {
   /* -------------------------------------------------------------------------------------
      STEP 1: Initialize parser block struct and copy current g-code state modes. The parser
@@ -361,9 +368,92 @@ uint8_t gc_execute_line(char *line)
             reset_stepper_power();
             break;
             return (STATUS_OK);
+          default:
+            FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
         }
         break;
-
+      
+      case 'D':
+        switch (int_value) {
+          case 0: // D0R[Resolution], set resolution and enter fast raster mode
+            /* Lock until ALL the previous motions are complete */
+            if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
+              cmd_process_locker.fast_raster_print = 1;
+              return (STATUS_GCODE_CMD_LOCKED);
+            }
+            printString("[DEBUG: Enter fast raster mode]\n");
+            fast_raster_mode_switch_off(); // Reset fast raster mode context first
+            set_fast_raster_print_resolution(kRasterHighRes); // default: High Res
+            if(line[char_counter] == 'R') // D0R[Resolution]
+            {
+              char_counter++;
+              if (line[char_counter] == 'L') {
+                set_fast_raster_print_resolution(kRasterLowRes);
+              } else if(line[char_counter] == 'M') {
+                set_fast_raster_print_resolution(kRasterMidRes);
+              } else if(line[char_counter] == 'U') {
+                set_fast_raster_print_resolution(kRasterUltraHighRes);
+              }
+            }
+            fast_raster_mode_switch_on(settings.steps_per_mm[X_AXIS]);
+            // After B253, 
+            // Expect to Receive and Execute the first G1 moving cmd to the init pos
+            return (STATUS_OK);
+          case 1: // D1
+            if(line[char_counter] == 'P' && line[char_counter+1] == 'C') 
+            {
+              fast_raster_print_DPC_handler(line);
+              return (STATUS_OK);
+            }
+            FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
+          case 2: // D2
+            if(line[char_counter] == 'W') 
+            {
+              fast_raster_print_DW_handler(line);
+              return (STATUS_OK);
+            }
+            FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
+          case 3: // D3
+            if(line[char_counter] == 'F' && line[char_counter+1] == 'E') 
+            {
+              fast_raster_print_DFE_handler();
+              return (STATUS_OK);
+            }
+            FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
+          case 4: // D4
+            if(line[char_counter] == 'P' && line[char_counter+1] == 'L') 
+            {
+              if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
+                cmd_process_locker.fast_raster_print = 1;
+                return (STATUS_GCODE_CMD_LOCKED);
+              } else if (fast_raster_print_DPL_handler() == false) { // Still busy
+                cmd_process_locker.fast_raster_print = 1;
+                return (STATUS_GCODE_CMD_LOCKED);
+              }
+              // Ready
+              // Force turn off laser just in case (might be redundant)
+              printString("[DEBUG: Start next raster line]\n");
+              //ResetSpindleEnablebit();
+              //spindle_fast_switch(SPINDLE_PWM1_OFF_VALUE);
+              return (STATUS_OK);
+            }
+            FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
+          case 5: // D5, exit fast raster mode
+            /* Lock until ALL the previous motions are complete */
+            if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
+              cmd_process_locker.fast_raster_print = 1;
+              return (STATUS_GCODE_CMD_LOCKED);
+            }
+            printString("[DEBUG: Exit fast raster mode]\n");
+            spindle_stop(); // for safety, in case spindle not stop
+            // All raster line prints must have been completed
+            fast_raster_mode_switch_off(); // Switch off at the end of this command
+            return (STATUS_OK);
+          default:
+            FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
+        }
+        break;
+      
       // NOTE: All remaining letters assign values.
       default:
 
@@ -373,7 +463,6 @@ uint8_t gc_execute_line(char *line)
         switch(letter){
           // case 'A': // Not supported
           // case 'C': // Not supported
-          // case 'D': // Not supported
           case 'F': word_bit = WORD_F; gc_block.values.f = value; break;
           // case 'H': // Not supported
           case 'I': word_bit = WORD_I; gc_block.values.ijk[X_AXIS] = value; ijk_words |= (1<<X_AXIS); break;
@@ -387,9 +476,9 @@ uint8_t gc_execute_line(char *line)
           case 'R': word_bit = WORD_R; gc_block.values.r = value; break;
           case 'S': word_bit = WORD_S; gc_block.values.s = value; break;
           case 'T': word_bit = WORD_T; 
-					  if (value > MAX_TOOL_NUMBER) { FAIL(STATUS_GCODE_MAX_VALUE_EXCEEDED); }
+            if (value > MAX_TOOL_NUMBER) { FAIL(STATUS_GCODE_MAX_VALUE_EXCEEDED); }
             gc_block.values.t = int_value;
-						break;
+            break;
           case 'X': word_bit = WORD_X; gc_block.values.xyz[X_AXIS] = value; axis_words |= (1<<X_AXIS); break;
           case 'Y': word_bit = WORD_Y; gc_block.values.xyz[Y_AXIS] = value; axis_words |= (1<<Y_AXIS); break;
           case 'Z': word_bit = WORD_Z; gc_block.values.xyz[Z_AXIS] = value; axis_words |= (1<<Z_AXIS); break;
