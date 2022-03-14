@@ -28,8 +28,8 @@
 #ifndef defaults_h
 
 #ifdef FLUX_LASER_VIDA
-  #define DEFAULT_X_STEPS_PER_MM 78.740
-  #define DEFAULT_Y_STEPS_PER_MM 157.480
+  #define DEFAULT_X_STEPS_PER_MM 40
+  #define DEFAULT_Y_STEPS_PER_MM 100
   #define DEFAULT_Z_STEPS_PER_MM 250.0
   #define DEFAULT_X_MAX_RATE 18000.0 // mm/min
   #define DEFAULT_Y_MAX_RATE 6000.0 // mm/min
