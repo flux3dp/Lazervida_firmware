@@ -35,8 +35,8 @@ static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
 static void protocol_exec_rt_suspend();
 
 void initial_homing() {
-  if (bit_isfalse(settings.flags,BITFLAG_HOMING_ENABLE)) {return(STATUS_SETTING_DISABLED); }
-  // if (system_check_safety_door_ajar()) { return(STATUS_CHECK_DOOR); } // Block if safety door is ajar.
+  if (bit_isfalse(settings.flags,BITFLAG_HOMING_ENABLE)) {return ;}
+  
   sys.state = STATE_HOMING; // Set system state variable
   mc_homing_cycle(HOMING_CYCLE_ALL);
   if (!sys.abort) {  // Execute startup scripts after successful homing.
