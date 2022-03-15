@@ -616,7 +616,7 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, MOTOR_PWR_Pin|INT_G_SENSOR_Pin|LASER_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, MOTOR_PWR_Pin|LASER_EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, FAN_EN_Pin|STEP_EN_INV_Pin|MS1_Pin, GPIO_PIN_SET);
@@ -631,17 +631,23 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : INT_G_SENSOR_Pin FAN_EN_Pin STEP_EN_INV_Pin MS1_Pin */
-  GPIO_InitStruct.Pin = INT_G_SENSOR_Pin|FAN_EN_Pin|STEP_EN_INV_Pin|MS1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  /*Configure GPIO pin : MSA311_INT_Pin */
+  GPIO_InitStruct.Pin = MSA311_INT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(MSA311_INT_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : BASE_DETECT_Pin LIMIT_Y_Pin LIMIT_X_Pin */
   GPIO_InitStruct.Pin = BASE_DETECT_Pin|LIMIT_Y_Pin|LIMIT_X_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : FAN_EN_Pin STEP_EN_INV_Pin MS1_Pin */
+  GPIO_InitStruct.Pin = FAN_EN_Pin|STEP_EN_INV_Pin|MS1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : DIR_Y_Pin STEP_Y_Pin DIR_X_Pin STEP_X_Pin */
@@ -656,6 +662,10 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(DOOR_DETECT_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
 }
 

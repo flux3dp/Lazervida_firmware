@@ -25,12 +25,15 @@
 #include "debug_serial.h"
 #include "flux_machine.h"
 #include "sensors.h"
+#include "fast_raster_print.h"
 
 // Define line flags. Includes comment type tracking and line overflow detection.
 #define LINE_FLAG_OVERFLOW bit(0)
 #define LINE_FLAG_COMMENT_PARENTHESES bit(1)
 #define LINE_FLAG_COMMENT_SEMICOLON bit(2)
 
+
+bool MSA311_INT_triggered = false;
 
 static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
 
@@ -52,7 +55,7 @@ void initial_homing() {
 */
 void protocol_main_loop()
 {
-  initial_homing();
+  //initial_homing();
 
   // Perform some machine checks to make sure everything is good to go.
   #ifdef CHECK_LIMITS_AT_INIT
@@ -192,6 +195,11 @@ void protocol_main_loop()
           report_status_message(resp_status);
         }
       }
+    }
+
+    if (MSA311_INT_triggered) {
+      printString("MSA311 int\n");
+      MSA311_INT_triggered = false;
     }
 
     // If there are no more characters in the serial read buffer to be processed and executed,
@@ -823,5 +831,16 @@ static void protocol_exec_rt_suspend()
 
     protocol_exec_rt_system();
 
+  }
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  switch (GPIO_Pin) {
+    case GPIO_PIN_1:
+      MSA311_INT_triggered = true;
+      break;
+    default:
+      break;
   }
 }

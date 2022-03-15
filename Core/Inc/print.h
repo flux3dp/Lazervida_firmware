@@ -29,6 +29,8 @@ void printInteger(long n);
 
 void print_uint32_base10(uint32_t n);
 
+void print_uint32_base2_ndigit(uint32_t n, uint8_t digits);
+
 // Prints an uint8 variable in base 10.
 void print_uint8_base10(uint8_t n);
 

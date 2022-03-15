@@ -2,6 +2,9 @@
   "files.associations": {
     "__mutex_base": "c",
     "mutex": "c",
-    "cstring": "c"
+    "cstring": "c",
+    "fast_raster_print.h": "c",
+    "main.h": "c",
+    "peripherals.h": "c"
   }
 }

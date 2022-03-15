@@ -7,12 +7,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "main.h"
 
 /*=========================================================================
 I2C ADDRESS/BITS
 -----------------------------------------------------------------------*/
-#define MSA311_I2CADDR_DEFAULT (0x26) ///< Fixed I2C address
-#define MSA311_I2CADDR_DEFAULT (0x62) ///< Fixed I2C address
+#define MSA301_I2CADDR_DEFAULT (0x26 << 1) ///< Fixed I2C address
+#define MSA311_I2CADDR_DEFAULT (0x62 << 1) ///< Fixed I2C address
 /*=========================================================================*/
 
 #define MSA311_REG_PARTID 0x01    ///< Register that contains the part ID
@@ -33,6 +34,9 @@ I2C ADDRESS/BITS
 #define MSA311_REG_INTSET1 0x17   ///< Register address for interrupt setting #1
 #define MSA311_REG_INTMAP0 0x19   ///< Register address for interrupt map #0
 #define MSA311_REG_INTMAP1 0x1A   ///< Register address for interrupt map #1
+#define MSA311_REG_INTLATCH 0x21  ///< Register address for interrupt latch
+#define MSA311_REG_ACTIVEDUR 0x27  ///< Register address for Active duration
+#define MSA311_REG_ACTIVETH 0x28  ///< Register address for Active threshold
 #define MSA311_REG_TAPDUR 0x2A    ///< Register address for tap duration
 #define MSA311_REG_TAPTH 0x2B     ///< Register address for tap threshold
 
@@ -83,16 +87,8 @@ typedef enum {
 typedef enum {
   MSA311_NORMALMODE = 0b00,   ///< Normal (high speed) mode
   MSA311_LOWPOWERMODE = 0b01, ///< Low power (slow speed) mode
-  MSA311_SUSPENDMODE = 0b010, ///< Suspend (sleep) mode
+  MSA311_SUSPENDMODE = 0b11, ///< Suspend (sleep) mode
 } msa311_powermode_t;
-
-/** The accelerometer read resolution */
-typedef enum {
-  MSA311_RESOLUTION_14 = 0b00, ///< 14-bit resolution
-  MSA311_RESOLUTION_12 = 0b01, ///< 12-bit resolution
-  MSA311_RESOLUTION_10 = 0b10, ///< 10-bit resolution
-  MSA311_RESOLUTION_8 = 0b11,  ///< 8-bit resolution
-} msa311_resolution_t;
 
 /** Tap duration parameter */
 typedef enum {
@@ -106,6 +102,14 @@ typedef enum {
   MSA311_TAPDUR_700_MS = 0b111, ///< 50 millis700 millis
 } msa311_tapduration_t;
 
+/** Active duration parameter */
+typedef enum {
+  MSA311_ACTIVEDUR_1_MS = 0b00, ///< 1 millis
+  MSA311_ACTIVEDUR_2_MS = 0b01, ///< 2 millis
+  MSA311_ACTIVEDUR_3_MS = 0b10, ///< 3 millis
+  MSA311_ACTIVEDUR_4_MS = 0b11, ///< 4 millis
+} msa311_activeduration_t;
+
 /** Interrupts available */
 typedef enum {
   MSA311_INT_ORIENT = 0b100000, ///< Orientation change interrupt
@@ -117,7 +121,7 @@ typedef enum {
 
 
 /** Class for hardware interfacing with an MSA311 accelerometer */
-typedef struct Adafruit_MSA311 {
+typedef struct {
   int16_t x, ///< The last read X acceleration in raw units
       y,     ///< The last read Y acceleration in raw units
       z;     ///< The last read Z acceleration in raw units
@@ -126,9 +130,13 @@ typedef struct Adafruit_MSA311 {
       z_g;   ///< The last read X acceleration in 'g'
 
   int32_t _sensorID;
-};
+  I2C_HandleTypeDef *p_hi2c;
+} Adafruit_MSA311;
+
 void Adafruit_MSA311_init(void);
-bool Adafruit_MSA311_begin(uint8_t i2c_addr = MSA311_I2CADDR_DEFAULT, TwoWire *wire = &Wire);
+bool Adafruit_MSA311_begin(I2C_HandleTypeDef *p_hi2c);
+
+uint8_t MSA311_get_partid();
 
 void Adafruit_MSA311_setDataRate(msa311_dataRate_t dataRate);
 msa311_dataRate_t Adafruit_MSA311_getDataRate(void);
@@ -140,18 +148,24 @@ void Adafruit_MSA311_setBandwidth(msa311_bandwidth_t bandwidth);
 msa311_bandwidth_t Adafruit_MSA311_getBandwidth(void);
 void Adafruit_MSA311_setRange(msa311_range_t range);
 msa311_range_t Adafruit_MSA311_getRange(void);
-void Adafruit_MSA311_setResolution(msa311_resolution_t resolution);
-msa311_resolution_t Adafruit_MSA311_getResolution(void);
 
 void Adafruit_MSA311_read();
+float MSA311_get_x_data(void);
+float MSA311_get_y_data(void);
+float MSA311_get_z_data(void);
 
-void Adafruit_MSA311_enableInterrupts(bool singletap = false, bool doubletap = false,
-                      bool activeX = false, bool activeY = false,
-                      bool activeZ = false, bool newData = false,
-                      bool freefall = false, bool orient = false);
-void Adafruit_MSA311_mapInterruptPin(bool singletap = false, bool doubletap = false,
-                      bool activity = false, bool newData = false,
-                      bool freefall = false, bool orient = false);
+void Adafruit_MSA311_enableInterrupts(bool singletap, bool doubletap,
+                      bool activeX, bool activeY,
+                      bool activeZ, bool newData,
+                      bool freefall, bool orient);
+void Adafruit_MSA311_mapInterruptPin(bool singletap, bool doubletap,
+                      bool activity, bool newData,
+                      bool freefall, bool orient);
+
+uint8_t MSA311_getActiveInterruptThresh();
+void MSA311_setActiveInterruptThresh(uint8_t threshold);
+msa311_activeduration_t MSA311_getActiveInterruptDur();
+void MSA311_setActiveInterruptDur(msa311_activeduration_t duration_ms);
 
 uint8_t Adafruit_MSA311_getClick(void);
 uint8_t Adafruit_MSA311_getMotionInterruptStatus(void);
@@ -160,5 +174,8 @@ uint8_t Adafruit_MSA311_getDataInterruptStatus(void);
 void Adafruit_MSA311_setClick(bool tap_quiet, bool tap_shock,
                 msa311_tapduration_t tapduration, uint8_t tapthresh);
 
+
+void MSA311_print_config(void);
+void MSA311_print_status();
 
 #endif

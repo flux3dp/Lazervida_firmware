@@ -22,6 +22,7 @@
 #include "grbl.h"
 #include "main.h"
 #include "flux_machine.h"
+#include "fast_raster_print.h"
 
 
 // Some useful constants.

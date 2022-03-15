@@ -86,14 +86,16 @@ extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 extern ADC_HandleTypeDef hadc1;
+extern I2C_HandleTypeDef hi2c1;
 //extern UART_HandleTypeDef huart1;
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
 #define MOTOR_PWR_Pin GPIO_PIN_0
 #define MOTOR_PWR_GPIO_Port GPIOA
-#define INT_G_SENSOR_Pin GPIO_PIN_1
-#define INT_G_SENSOR_GPIO_Port GPIOA
+#define MSA311_INT_Pin GPIO_PIN_1
+#define MSA311_INT_GPIO_Port GPIOA
+#define MSA311_INT_EXTI_IRQn EXTI1_IRQn
 #define LASER_EN_Pin GPIO_PIN_2
 #define LASER_EN_GPIO_Port GPIOA
 #define BASE_DETECT_Pin GPIO_PIN_3

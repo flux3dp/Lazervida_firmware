@@ -22,7 +22,9 @@
  *
  */
 
-#include <Adafruit_MSA311.h>
+#include "Adafruit_MSA311.h"
+
+static Adafruit_MSA311 msa311;
 
 /**************************************************************************/
 /*!
@@ -39,20 +41,10 @@ void Adafruit_MSA311_init() {}
  *            The Wire object to be used for I2C connections.
  *    @return True if initialization was successful, otherwise false.
  */
-bool Adafruit_MSA311_begin(uint8_t i2c_address, TwoWire *wire) {
-  i2c_dev = new Adafruit_I2CDevice(i2c_address, wire);
-
-  if (!i2c_dev->begin()) {
-    Serial.println("Failed to init i2c address");
-    return false;
-  }
-
-  // Check connection
-  Adafruit_BusIO_Register chip_id =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_PARTID, 1);
-
+bool Adafruit_MSA311_begin(I2C_HandleTypeDef *p_hi2c) {
+  msa311.p_hi2c = p_hi2c;
   // make sure we're talking to the right chip
-  if (chip_id.read() != 0x13) {
+  if (MSA311_get_partid() != 0x13) {
     // No MSA301 detected ... return false
     return false;
   }
@@ -65,9 +57,11 @@ bool Adafruit_MSA311_begin(uint8_t i2c_address, TwoWire *wire) {
   Adafruit_MSA311_setDataRate(MSA311_DATARATE_500_HZ);
   // 250Hz bw
   Adafruit_MSA311_setBandwidth(MSA311_BANDWIDTH_250_HZ);
-  Adafruit_MSA311_setRange(MSA311_RANGE_4_G);
-  Adafruit_MSA311_setResolution(MSA311_RESOLUTION_14);
+  Adafruit_MSA311_setRange(MSA311_RANGE_2_G);
 
+  // Enable Active(sudden move) and freefall interrupts
+  Adafruit_MSA311_enableInterrupts(false, false, true, true, true, false, true, false);
+  Adafruit_MSA311_mapInterruptPin(false, false, true, false, true, false);
   /*
   // DRDY on INT1
   writeRegister8(MSA311_REG_CTRL3, 0x10);
@@ -85,6 +79,16 @@ bool Adafruit_MSA311_begin(uint8_t i2c_address, TwoWire *wire) {
   return true;
 }
 
+uint8_t MSA311_get_partid() {
+  
+  uint8_t reg_buf[1] = {MSA311_REG_PARTID};
+  uint8_t recv_buf[1] = {0};
+  
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, reg_buf, 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, recv_buf, 1, 1000);
+  return recv_buf[0];
+}
+
 /**************************************************************************/
 /*!
     @brief  Sets the data rate for the MSA301 (controls power consumption)
@@ -93,11 +97,16 @@ bool Adafruit_MSA311_begin(uint8_t i2c_address, TwoWire *wire) {
 */
 /**************************************************************************/
 void Adafruit_MSA311_setDataRate(msa311_dataRate_t dataRate) {
-  Adafruit_BusIO_Register ODR =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_ODR, 1);
-  Adafruit_BusIO_RegisterBits dataratebits =
-      Adafruit_BusIO_RegisterBits(&ODR, 4, 0);
-  dataratebits.write((uint8_t)dataRate);
+  
+  uint8_t reg_buf[1] = {MSA311_REG_ODR};
+  uint8_t odr_buf[1] = {0};
+  uint8_t send_buf[2] = {MSA311_REG_ODR, 0};
+  
+  // read, modify and write
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, reg_buf, 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, odr_buf, 1, 1000);
+  send_buf[1] = (odr_buf[0] & 0b11110000) | dataRate;
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_buf, 2, 1000);
 }
 
 /**************************************************************************/
@@ -107,11 +116,13 @@ void Adafruit_MSA311_setDataRate(msa311_dataRate_t dataRate) {
 */
 /**************************************************************************/
 msa311_dataRate_t Adafruit_MSA311_getDataRate(void) {
-  Adafruit_BusIO_Register ODR =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_ODR, 1);
-  Adafruit_BusIO_RegisterBits dataratebits =
-      Adafruit_BusIO_RegisterBits(&ODR, 4, 0);
-  return (msa311_dataRate_t)dataratebits.read();
+  
+  uint8_t reg_buf[1] = {MSA311_REG_ODR};
+  uint8_t odr_buf[1] = {0};
+  
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, reg_buf, 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, odr_buf, 1, 1000);
+  return (msa311_dataRate_t)(odr_buf[0] & 0b00001111);
 }
 
 /**************************************************************************/
@@ -123,15 +134,15 @@ msa311_dataRate_t Adafruit_MSA311_getDataRate(void) {
 */
 /**************************************************************************/
 void Adafruit_MSA311_enableAxes(bool enableX, bool enableY, bool enableZ) {
-  Adafruit_BusIO_Register ODR =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_ODR, 1);
-
-  Adafruit_BusIO_RegisterBits x = Adafruit_BusIO_RegisterBits(&ODR, 1, 7);
-  Adafruit_BusIO_RegisterBits y = Adafruit_BusIO_RegisterBits(&ODR, 1, 6);
-  Adafruit_BusIO_RegisterBits z = Adafruit_BusIO_RegisterBits(&ODR, 1, 5);
-  x.write(!enableX); // these are *disable* bits, yeah...
-  y.write(!enableY);
-  z.write(!enableZ);
+  
+  uint8_t reg_buf[1] = {MSA311_REG_ODR};
+  uint8_t odr_buf[1] = {0};
+  uint8_t send_buf[2] = {MSA311_REG_ODR, 0};
+  
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, reg_buf, 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, odr_buf, 1, 1000);
+  send_buf[1] = (odr_buf[0] & 0b00001111) | ((!enableX) << 7) | ((!enableY) << 6) | ((!enableZ) << 5);
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_buf, 2, 1000);
 }
 
 /**************************************************************************/
@@ -142,11 +153,15 @@ void Adafruit_MSA311_enableAxes(bool enableX, bool enableY, bool enableZ) {
 */
 /**************************************************************************/
 void Adafruit_MSA311_setPowerMode(msa311_powermode_t mode) {
-  Adafruit_BusIO_Register PowerMode =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_POWERMODE, 1);
-  Adafruit_BusIO_RegisterBits powermodebits =
-      Adafruit_BusIO_RegisterBits(&PowerMode, 2, 6);
-  powermodebits.write((uint8_t)mode);
+  
+  uint8_t reg_buf[1] = {MSA311_REG_POWERMODE};
+  uint8_t power_mode_buf[1] = {0};
+  uint8_t send_buf[2] = {MSA311_REG_POWERMODE, 0};
+  
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, reg_buf, 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, power_mode_buf, 1, 1000);
+  send_buf[1] = (power_mode_buf[0] & 0b00011111) | (mode << 6);
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_buf, 2, 1000);
 }
 
 /**************************************************************************/
@@ -158,11 +173,13 @@ void Adafruit_MSA311_setPowerMode(msa311_powermode_t mode) {
 */
 /**************************************************************************/
 msa311_powermode_t Adafruit_MSA311_getPowerMode(void) {
-  Adafruit_BusIO_Register PowerMode =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_POWERMODE, 1);
-  Adafruit_BusIO_RegisterBits powermodebits =
-      Adafruit_BusIO_RegisterBits(&PowerMode, 2, 6);
-  return (msa311_powermode_t)powermodebits.read();
+
+  uint8_t reg_buf[1] = {MSA311_REG_POWERMODE};
+  uint8_t power_mode_buf[1] = {0};
+
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, reg_buf, 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, power_mode_buf, 1, 1000);
+  return (msa311_powermode_t)((power_mode_buf[0] & 0b11000000) >> 6);
 }
 
 /**************************************************************************/
@@ -172,11 +189,15 @@ msa311_powermode_t Adafruit_MSA311_getPowerMode(void) {
 */
 /**************************************************************************/
 void Adafruit_MSA311_setBandwidth(msa311_bandwidth_t bandwidth) {
-  Adafruit_BusIO_Register PowerMode =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_POWERMODE, 1);
-  Adafruit_BusIO_RegisterBits bandwidthbits =
-      Adafruit_BusIO_RegisterBits(&PowerMode, 4, 1);
-  bandwidthbits.write((uint8_t)bandwidth);
+
+  uint8_t reg_buf[1] = {MSA311_REG_POWERMODE};
+  uint8_t power_mode_buf[1] = {0};
+  uint8_t send_buf[2] = {MSA311_REG_POWERMODE, 0};
+
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, reg_buf, 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, power_mode_buf, 1, 1000);
+  send_buf[1] = (power_mode_buf[0] & 0b11000000) | (bandwidth << 1);
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_buf, 2, 1000);
 }
 
 /**************************************************************************/
@@ -186,11 +207,13 @@ void Adafruit_MSA311_setBandwidth(msa311_bandwidth_t bandwidth) {
 */
 /**************************************************************************/
 msa311_bandwidth_t Adafruit_MSA311_getBandwidth(void) {
-  Adafruit_BusIO_Register PowerMode =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_POWERMODE, 1);
-  Adafruit_BusIO_RegisterBits bandwidthbits =
-      Adafruit_BusIO_RegisterBits(&PowerMode, 4, 1);
-  return (msa311_bandwidth_t)bandwidthbits.read();
+  
+  uint8_t reg_buf[1] = {MSA311_REG_POWERMODE};
+  uint8_t power_mode_buf[1] = {0};
+
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, reg_buf, 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, power_mode_buf, 1, 1000);
+  return (msa311_bandwidth_t)((power_mode_buf[0] & 0b00011110) >> 1);
 }
 
 /**************************************************************************/
@@ -200,11 +223,15 @@ msa311_bandwidth_t Adafruit_MSA311_getBandwidth(void) {
 */
 /**************************************************************************/
 void Adafruit_MSA311_setRange(msa311_range_t range) {
-  Adafruit_BusIO_Register ResRange =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_RESRANGE, 1);
-  Adafruit_BusIO_RegisterBits rangebits =
-      Adafruit_BusIO_RegisterBits(&ResRange, 2, 0);
-  rangebits.write((uint8_t)range);
+
+  uint8_t reg_buf[1] = {MSA311_REG_RESRANGE};
+  uint8_t range_buf[1] = {0};
+  uint8_t send_buf[2] = {MSA311_REG_RESRANGE, 0};
+
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, reg_buf, 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, range_buf, 1, 1000);
+  send_buf[1] = (range_buf[0] & 0b11111100) | (range);
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_buf, 2, 1000);
 }
 
 /**************************************************************************/
@@ -214,39 +241,13 @@ void Adafruit_MSA311_setRange(msa311_range_t range) {
 */
 /**************************************************************************/
 msa311_range_t Adafruit_MSA311_getRange(void) {
-  Adafruit_BusIO_Register ResRange =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_RESRANGE, 1);
-  Adafruit_BusIO_RegisterBits rangebits =
-      Adafruit_BusIO_RegisterBits(&ResRange, 2, 0);
-  return (msa311_range_t)rangebits.read();
-}
 
-/**************************************************************************/
-/*!
-    @brief Set the resolution - 8, 10, 12, or 14bits
-    @param resolution Enumerated msa311_resolution_t
-*/
-/**************************************************************************/
-void Adafruit_MSA311_setResolution(msa311_resolution_t resolution) {
-  Adafruit_BusIO_Register ResRange =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_RESRANGE, 1);
-  Adafruit_BusIO_RegisterBits resbits =
-      Adafruit_BusIO_RegisterBits(&ResRange, 2, 2);
-  resbits.write((uint8_t)resolution);
-}
+  uint8_t reg_buf[1] = {MSA311_REG_RESRANGE};
+  uint8_t range_buf[1] = {0};
 
-/**************************************************************************/
-/*!
-    @brief Read the resolution - 8, 10, 12, or 14bits
-    @returns Enumerated msa311_resolution_t
-*/
-/**************************************************************************/
-msa311_resolution_t Adafruit_MSA311_getResolution(void) {
-  Adafruit_BusIO_Register ResRange =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_RESRANGE, 1);
-  Adafruit_BusIO_RegisterBits resbits =
-      Adafruit_BusIO_RegisterBits(&ResRange, 2, 2);
-  return (msa311_resolution_t)resbits.read();
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, reg_buf, 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, range_buf, 1, 1000);
+  return (msa311_range_t)((range_buf[0] & 0b00000011) >> 0);
 }
 
 /**************************************************************************/
@@ -257,38 +258,58 @@ msa311_resolution_t Adafruit_MSA311_getResolution(void) {
 /**************************************************************************/
 
 void Adafruit_MSA311_read(void) {
-  uint8_t buffer[6];
 
-  Adafruit_BusIO_Register XYZDataReg =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_OUT_X_L, 6);
-  XYZDataReg.read(buffer, 6);
-  x = buffer[0];
-  x |= buffer[1] << 8;
-  y = buffer[2];
-  y |= buffer[3] << 8;
-  z = buffer[4];
-  z |= buffer[5] << 8;
+  int i;
+  uint8_t reg_buf[6] = {MSA311_REG_OUT_X_L, MSA311_REG_OUT_X_H, 
+                        MSA311_REG_OUT_Y_L, MSA311_REG_OUT_Y_H, 
+                        MSA311_REG_OUT_Z_L, MSA311_REG_OUT_Z_H};
+  uint8_t acc_buf[6] = {0};
 
-  // 14 bits of data in 16 bit range
-  x >>= 2;
-  y >>= 2;
-  z >>= 2;
+  for (i = 0; i < 6; i++) {
+    HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, &reg_buf[i], 1, 1000);
+    HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, &acc_buf[i], 1, 1000);
+  }
 
-  msa311_range_t range = getRange();
+  msa311.x = acc_buf[0];
+  msa311.x |= acc_buf[1] << 8;
+  msa311.y = acc_buf[2];
+  msa311.y |= acc_buf[3] << 8;
+  msa311.z = acc_buf[4];
+  msa311.z |= acc_buf[5] << 8;
+
+  // 12 bits of data in 16 bit range
+  msa311.x >>= 4;
+  msa311.y >>= 4;
+  msa311.z >>= 4;
+
+  msa311_range_t range = Adafruit_MSA311_getRange();
   float scale = 1;
   if (range == MSA311_RANGE_16_G)
-    scale = 512;
+    scale = 128;
   if (range == MSA311_RANGE_8_G)
-    scale = 1024;
+    scale = 256;
   if (range == MSA311_RANGE_4_G)
-    scale = 2048;
+    scale = 512;
   if (range == MSA311_RANGE_2_G)
-    scale = 4096;
+    scale = 1024;
 
-  x_g = (float)x / scale;
-  y_g = (float)y / scale;
-  z_g = (float)z / scale;
+  msa311.x_g = (float)msa311.x / scale;
+  msa311.y_g = (float)msa311.y / scale;
+  msa311.z_g = (float)msa311.z / scale;
 }
+
+float MSA311_get_x_data(void) {
+  return msa311.x_g;
+}
+
+float MSA311_get_y_data(void) {
+  return msa311.y_g;
+}
+
+float MSA311_get_z_data(void) {
+  return msa311.z_g;
+}
+
 
 /**************************************************************************/
 /*!
@@ -305,23 +326,14 @@ void Adafruit_MSA311_read(void) {
 void Adafruit_MSA311_setClick(bool tap_quiet, bool tap_shock,
                                msa311_tapduration_t tapduration,
                                uint8_t tapthresh) {
-  Adafruit_BusIO_Register TapDur =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_TAPDUR, 1);
-  Adafruit_BusIO_RegisterBits quietbit =
-      Adafruit_BusIO_RegisterBits(&TapDur, 1, 7);
-  quietbit.write(tap_quiet);
-  Adafruit_BusIO_RegisterBits shockbit =
-      Adafruit_BusIO_RegisterBits(&TapDur, 1, 6);
-  shockbit.write(tap_shock);
-  Adafruit_BusIO_RegisterBits durationbits =
-      Adafruit_BusIO_RegisterBits(&TapDur, 3, 0);
-  durationbits.write(tapduration);
 
-  Adafruit_BusIO_Register TapTh =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_TAPTH, 1);
-  Adafruit_BusIO_RegisterBits threshbits =
-      Adafruit_BusIO_RegisterBits(&TapTh, 5, 0);
-  threshbits.write(tapthresh);
+  uint8_t send_tap_dur_buf[2] = {MSA311_REG_TAPDUR, 
+                                (tap_quiet << 7 | tap_shock << 6 | tapduration << 0)};
+  uint8_t send_tap_thresh_buf[2] = {MSA311_REG_TAPTH, 
+                                tapthresh};
+
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_tap_dur_buf, 2, 1000);
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_tap_thresh_buf, 2, 1000);
 }
 
 /**************************************************************************/
@@ -332,10 +344,13 @@ void Adafruit_MSA311_setClick(bool tap_quiet, bool tap_shock,
 */
 /**************************************************************************/
 uint8_t Adafruit_MSA311_getClick(void) {
-  Adafruit_BusIO_Register ClickStatus =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_CLICKSTATUS, 1);
 
-  return ClickStatus.read();
+  uint8_t reg_buf[1] = {MSA311_REG_CLICKSTATUS};
+  uint8_t tap_status_buf[1] = {0};
+  
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, &reg_buf[0], 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, tap_status_buf, 1, 1000);
+  return tap_status_buf[0];
 }
 
 /**************************************************************************/
@@ -355,10 +370,9 @@ void Adafruit_MSA311_enableInterrupts(bool singletap, bool doubletap,
                                        bool activeX, bool activeY, bool activeZ,
                                        bool newData, bool freefall,
                                        bool orient) {
-  Adafruit_BusIO_Register IntSet0 =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_INTSET0, 1);
-  Adafruit_BusIO_Register IntSet1 =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_INTSET1, 1);
+  uint8_t send_int_en0_buf[2] = {MSA311_REG_INTSET0, 0};
+  uint8_t send_int_en1_buf[2] = {MSA311_REG_INTSET1, 0};
+
   uint8_t irqs = 0;
   irqs |= orient << 6;
   irqs |= singletap << 5;
@@ -366,11 +380,13 @@ void Adafruit_MSA311_enableInterrupts(bool singletap, bool doubletap,
   irqs |= activeX << 0;
   irqs |= activeY << 1;
   irqs |= activeZ << 2;
-  IntSet0.write(irqs);
+  send_int_en0_buf[1] =irqs;
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_int_en0_buf, 2, 1000);
   irqs = 0;
   irqs |= newData << 4;
   irqs |= freefall << 3;
-  IntSet1.write(irqs);
+  send_int_en1_buf[1] =irqs;
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_int_en1_buf, 2, 1000);
 }
 
 /**************************************************************************/
@@ -388,20 +404,87 @@ void Adafruit_MSA311_enableInterrupts(bool singletap, bool doubletap,
 void Adafruit_MSA311_mapInterruptPin(bool singletap, bool doubletap,
                                       bool activity, bool newData,
                                       bool freefall, bool orient) {
-  Adafruit_BusIO_Register IntMap0 =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_INTMAP0, 1);
-  Adafruit_BusIO_Register IntMap1 =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_INTMAP1, 1);
-  uint8_t irqs = 0;
-  irqs |= orient << 6;
-  irqs |= singletap << 5;
-  irqs |= doubletap << 4;
-  irqs |= activity << 2;
-  irqs |= freefall << 0;
-  IntMap0.write(irqs);
-  irqs = newData << 0;
-  IntMap1.write(irqs);
+  uint8_t send_int_map0_buf[2] = {MSA311_REG_INTMAP0, 0};
+  uint8_t send_int_map1_buf[2] = {MSA311_REG_INTMAP1, 0};
+  
+  uint8_t int_pin_irq_map = 0;
+  int_pin_irq_map |= orient << 6;
+  int_pin_irq_map |= singletap << 5;
+  int_pin_irq_map |= doubletap << 4;
+  int_pin_irq_map |= activity << 2;
+  int_pin_irq_map |= freefall << 0;
+  send_int_map0_buf[1] = int_pin_irq_map;
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_int_map0_buf, 2, 1000);
+  int_pin_irq_map = newData << 0;
+  send_int_map1_buf[1] = int_pin_irq_map;
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_int_map1_buf, 2, 1000);
 }
+
+/**************************************************************************/
+/*!
+    @brief  Gets the threshold value for active interrupt
+    @returns 
+*/
+/**************************************************************************/
+
+uint8_t MSA311_getActiveInterruptThresh() {
+  
+  uint8_t reg_buf[1] = {MSA311_REG_ACTIVETH};
+  uint8_t active_th_buf[1] = {0};
+  
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, &reg_buf[0], 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, active_th_buf, 1, 1000);
+  return active_th_buf[0];
+}
+
+/**************************************************************************/
+/*!
+    @brief  Sets the threshold value for active interrupt
+    @param threshold to be set 
+                    3.91mg/LSB for 2g range
+                    7.81mg/LSB for 4g range
+                    15.625mg/LSB for 8g range
+                    31.25mg/LSB for 16g range
+*/
+/**************************************************************************/
+
+void MSA311_setActiveInterruptThresh(uint8_t threshold) {
+  
+  uint8_t send_buf[2] = {MSA311_REG_ACTIVETH, threshold};
+  
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_buf, 2, 1000);
+}
+
+/**************************************************************************/
+/*!
+    @brief  Gets the consecutive duration value for active interrupt
+    @returns 
+*/
+/**************************************************************************/
+
+msa311_activeduration_t MSA311_getActiveInterruptDur() {
+  uint8_t reg_buf[1] = {MSA311_REG_ACTIVEDUR};
+  uint8_t active_dur_buf[1] = {0};
+  
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, &reg_buf[0], 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, active_dur_buf, 1, 1000);
+  return (msa311_activeduration_t)(active_dur_buf[0]);
+}
+
+/**************************************************************************/
+/*!
+    @brief  Sets the consecutive duration value for active interrupt
+    @param duration_ms 
+*/
+/**************************************************************************/
+
+void MSA311_setActiveInterruptDur(msa311_activeduration_t duration_ms) {
+
+  uint8_t send_buf[2] = {MSA311_REG_ACTIVEDUR, duration_ms};
+  
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, send_buf, 2, 1000);
+}
+
 
 /**************************************************************************/
 /*!
@@ -412,10 +495,13 @@ void Adafruit_MSA311_mapInterruptPin(bool singletap, bool doubletap,
 /**************************************************************************/
 
 uint8_t Adafruit_MSA311_getMotionInterruptStatus(void) {
-  Adafruit_BusIO_Register IntStatus =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_MOTIONINT, 1);
 
-  return IntStatus.read();
+  uint8_t reg_buf[1] = {MSA311_REG_MOTIONINT};
+  uint8_t motion_int_status_buf[1] = {0};
+  
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, &reg_buf[0], 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, motion_int_status_buf, 1, 1000);
+  return motion_int_status_buf[0];
 }
 
 /**************************************************************************/
@@ -427,8 +513,51 @@ uint8_t Adafruit_MSA311_getMotionInterruptStatus(void) {
 /**************************************************************************/
 
 uint8_t Adafruit_MSA311_getDataInterruptStatus(void) {
-  Adafruit_BusIO_Register IntStatus =
-      Adafruit_BusIO_Register(i2c_dev, MSA311_REG_DATAINT, 1);
 
-  return IntStatus.read();
+  uint8_t reg_buf[1] = {MSA311_REG_DATAINT};
+  uint8_t data_int_status_buf[1] = {0};
+  
+  HAL_I2C_Master_Transmit(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, &reg_buf[0], 1, 1000);
+  HAL_I2C_Master_Receive(msa311.p_hi2c, MSA311_I2CADDR_DEFAULT, data_int_status_buf, 1, 1000);
+  return data_int_status_buf[0];
+}
+
+void MSA311_print_config(void) {
+  printString("[MSA311 config:\n");
+  printString("Data rate:");
+  print_uint32_base2_ndigit(Adafruit_MSA311_getDataRate(), 4);
+  printString("\nPower mode:");
+  print_uint32_base2_ndigit(Adafruit_MSA311_getPowerMode(), 2);
+  printString("\nBandwidth:");
+  print_uint32_base2_ndigit(Adafruit_MSA311_getBandwidth(), 4);
+  printString("\nRange:");
+  print_uint32_base2_ndigit(Adafruit_MSA311_getRange(), 2);
+  printString("\n]\n");
+}
+
+void MSA311_print_status() {
+  printString("[MSA311 status:\n");
+
+  Adafruit_MSA311_read();
+  printString("(x, y, z) = (");
+  print_uint32_base10(msa311.x);
+  printString(", ");
+  print_uint32_base10(msa311.y);
+  printString(", ");
+  print_uint32_base10(msa311.z);
+  printString(")\n");
+  printString("(x_g, y_g, z_g) = (");
+  printFloat(msa311.x_g, 2);
+  printString(", ");
+  printFloat(msa311.y_g, 2);
+  printString(", ");
+  printFloat(msa311.z_g, 2);
+  printString(")\n");
+  printString("Click status:");
+  print_uint8_base2_ndigit(Adafruit_MSA311_getClick(), 8);
+  printString("\nMotion INT status:");
+  print_uint8_base2_ndigit(Adafruit_MSA311_getMotionInterruptStatus(), 8);
+  printString("\nData INT status:");
+  print_uint8_base2_ndigit(Adafruit_MSA311_getDataInterruptStatus(), 8);
+  printString("\n]\n");
 }

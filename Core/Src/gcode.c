@@ -24,6 +24,7 @@
 #include "sensors.h"
 #include "flux_machine.h"
 #include "fast_raster_print.h"
+#include "peripherals.h"
 
 // NOTE: Max line number is defined by the g-code standard to be 99999. It seems to be an
 // arbitrary value, and some GUIs may require more. So we increased it based on a max safe
@@ -304,27 +305,21 @@ uint8_t gc_execute_line(const char *line)
           case 1:
             set_stepper_MS1();
             return (STATUS_OK);
-            break;
           case 2:
             reset_stepper_MS1();
             return (STATUS_OK);
-            break;
           case 3:
             HAL_GPIO_WritePin(STEP_EN_INV_GPIO_Port, STEP_EN_INV_Pin, GPIO_PIN_SET);
             return (STATUS_OK);
-            break;
           case 4:
             HAL_GPIO_WritePin(STEP_EN_INV_GPIO_Port, STEP_EN_INV_Pin, GPIO_PIN_RESET);
             return (STATUS_OK);
-            break;
           case 5:
             HAL_GPIO_WritePin(LASER_EN_GPIO_Port, LASER_EN_Pin, GPIO_PIN_SET);
             return (STATUS_OK);
-            break;
           case 6:
             HAL_GPIO_WritePin(LASER_EN_GPIO_Port, LASER_EN_Pin, GPIO_PIN_RESET);
             return (STATUS_OK);
-            break;
           case 7:
             word_bit = WORD_S; 
             gc_block.values.s = 1000;
@@ -333,40 +328,84 @@ uint8_t gc_execute_line(const char *line)
             word_bit = WORD_S; 
             gc_block.values.s = 0;
             return (STATUS_OK);
-            break;
           case 9:
             turn_on_fan();
             return (STATUS_OK);
-            break;
           case 10:
             turn_off_fan();
             return (STATUS_OK);
-            break;
           case 11:
             print_uint32_base10(DETECT_3V3_VALUE);
             printString("\n");
             return (STATUS_OK);
-            break;
           case 12:
             door_is_open() ? printString("Door opened\n") : printString("Door closed\n");
             return (STATUS_OK);
-            break;
           case 13:
             base_is_open() ? printString("Bottom opened\n") : printString("Bottom closed\n");
             return (STATUS_OK);
-            break;
           case 14:
             print_uint8_base2_ndigit(limits_get_state(), 2);
             printString("\n");
             return (STATUS_OK);
-            break;
           case 15:
             set_stepper_power();
             return (STATUS_OK);
-            break;
           case 16:
             reset_stepper_power();
-            break;
+            return (STATUS_OK);
+          case 17:
+            I2C_scanning();
+            return (STATUS_OK);
+          case 18:
+            print_uint8_base2_ndigit(MSA311_get_partid(), 8);
+            printString("\n");
+            return (STATUS_OK);
+          case 19:
+            print_uint32_base2_ndigit(Adafruit_MSA311_getDataRate(), 4);
+            printString("\n");
+            return (STATUS_OK);
+          case 20:
+            print_uint32_base2_ndigit(Adafruit_MSA311_getPowerMode(), 2);
+            printString("\n");
+            return (STATUS_OK);
+          case 21:
+            print_uint32_base2_ndigit(Adafruit_MSA311_getBandwidth(), 2);
+            printString("\n");
+            return (STATUS_OK);
+          case 22:
+            print_uint8_base10(get_MSA311_partid());
+            printString("\n");
+            return (STATUS_OK);
+          case 23:
+            Adafruit_MSA311_begin(&hi2c1);
+            return (STATUS_OK);
+          case 24:
+            // enable all axes
+            Adafruit_MSA311_enableAxes(true, true, true);
+            return (STATUS_OK);
+          case 25:
+            // normal mode
+            Adafruit_MSA311_setPowerMode(MSA311_NORMALMODE);
+            return (STATUS_OK);
+          case 26:
+            // 500Hz rate
+            Adafruit_MSA311_setDataRate(MSA311_DATARATE_500_HZ);
+            // 250Hz bw
+            Adafruit_MSA311_setBandwidth(MSA311_BANDWIDTH_250_HZ);
+            return (STATUS_OK);
+          case 27:
+            Adafruit_MSA311_setRange(MSA311_RANGE_4_G);
+            return (STATUS_OK);
+          case 28:
+            Adafruit_MSA311_setRange(MSA311_RANGE_2_G);
+            return (STATUS_OK);
+          case 29:
+            Adafruit_MSA311_setRange(MSA311_RANGE_16_G);
+            return (STATUS_OK);
+          case 30:
+            print_uint32_base2_ndigit(Adafruit_MSA311_getRange(), 2);
+            printString("\n");
             return (STATUS_OK);
           default:
             FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
