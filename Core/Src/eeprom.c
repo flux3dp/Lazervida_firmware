@@ -24,26 +24,26 @@
 #include "eeprom.h"
 #include "grbl.h"
 
-// TODO: Check whether this is correct for STM32F103T8x
-#define PAGE_SIZE  (uint16_t)0x400  /* Page size = 1KByte */
-#define EEPROM_START_ADDRESS    ((unsigned char*)0x0801fc00) // The flash location 127KB-128KB
-unsigned char Virtual_EEPROM[PAGE_SIZE];
+//#define EEPROM_SIZE  FLASH_PAGE_SIZE  /* Page size = 1KByte = 0x400 for STM32F103C8 */
+// The last page of flash (e.g. For STM32F103C8: 127KB-128KB)
+#define FLASH_START_ADDRESS_FOR_EEPROM    ((unsigned char*)(FLASH_BANK1_END + 1 - FLASH_PAGE_SIZE))
+unsigned char Virtual_EEPROM[FLASH_PAGE_SIZE];
 
 /* Define to reduce code size. */
-#define EEPROM_IGNORE_SELFPROG //!< Remove SPM flag polling.
+//#define EEPROM_IGNORE_SELFPROG //!< Remove SPM flag polling.
 
 /**
- * @brief Write the intermediate EEBuffer[] to actual flash memory
+ * @brief Write the intermediate Virtual_EEPROM[] to actual flash memory
  */
 void write_to_flash() {
-  uint32_t nAddress = (uint32_t)(EEPROM_START_ADDRESS);
-  uint16_t nSize = PAGE_SIZE;
+  uint32_t nAddress = (uint32_t)(FLASH_START_ADDRESS_FOR_EEPROM);
+  uint16_t nSize = FLASH_PAGE_SIZE;
   uint16_t *pBuffer = (uint16_t *)Virtual_EEPROM;
 
   FLASH_EraseInitTypeDef flash_erase_options;
   flash_erase_options.Banks = FLASH_BANK_1;
   flash_erase_options.NbPages = 1;
-  flash_erase_options.PageAddress = (uint32_t)(EEPROM_START_ADDRESS);
+  flash_erase_options.PageAddress = (uint32_t)(FLASH_START_ADDRESS_FOR_EEPROM);
   flash_erase_options.TypeErase = FLASH_TYPEERASE_PAGES;
   uint32_t page_error;
   
@@ -79,12 +79,23 @@ void write_to_flash() {
   HAL_FLASH_Lock();
 }
 
-void eeprom_init() {
-  // Copy the data in non-volatile virtual memory into virtual EEPROM in RAM
+/**
+ * @brief Read data in (non-volatile) flash into intermediate Virtual_EEPROM[]
+ */
+static void read_from_flash_into_eeprom() {
+  // Copy the data in non-volatile (flash) memory into virtual EEPROM in RAM
   int i;
-  for (i = 0; i < PAGE_SIZE; i++) {
-    Virtual_EEPROM[i] = (unsigned char)(*(EEPROM_START_ADDRESS + i));
+  for (i = 0; i < FLASH_PAGE_SIZE; i++) {
+    Virtual_EEPROM[i] = (unsigned char)(*(FLASH_START_ADDRESS_FOR_EEPROM + i));
   }
+}
+
+/**
+ * @brief initialize the Virtual EEPROM buffer in RAM with non-volatile data in flash
+ * 
+ */
+void eeprom_init() {
+  read_from_flash_into_eeprom();
 }
 
 /*! \brief  Read byte from EEPROM.
@@ -123,13 +134,32 @@ void eeprom_put_char( unsigned int addr, unsigned char new_value )
   Virtual_EEPROM[addr] = new_value;
 }
 
+/**
+ * @brief Set n bytes of data of Virtual_EEPROM the same new_value 
+ * 
+ * @param addr 
+ * @param new_value 
+ * @param n_byte 
+ */
+void eeprom_put_char_n_bytes( unsigned int addr, unsigned char new_value, size_t n_byte )
+{
+  memset(&Virtual_EEPROM[addr], new_value, n_byte);
+}
+
 // Extensions added as part of Grbl 
 
-
+/**
+ * @brief Copy the data in source buf into specific part of Virtual_EEPROM 
+ *        and then write to non-volatile flash memory
+ * 
+ * @param destination start byte idx of Virtual_EEPROM
+ * @param source 
+ * @param size 
+ */
 void memcpy_to_eeprom_with_checksum(unsigned int destination, char *source, unsigned int size) {
   unsigned char checksum = 0;
   for(; size > 0; size--) { 
-    checksum = (checksum << 1) | (checksum >> 7);
+    checksum = (checksum << 1) | (checksum >> 7); // left circular shift for 1 bit
     checksum += *source;
     eeprom_put_char(destination++, *(source++)); 
   }
@@ -139,11 +169,20 @@ void memcpy_to_eeprom_with_checksum(unsigned int destination, char *source, unsi
   write_to_flash();
 }
 
+/**
+ * @brief Copy the data in specific part of Virtual_EEPROM into dest buf
+ * 
+ * @param destination 
+ * @param source start byte idx of Virtual_EEPROM
+ * @param size 
+ * @return int false if stored checksum != calculated checksum
+ *             true if stored checksum == calculated checksum
+ */
 int memcpy_from_eeprom_with_checksum(char *destination, unsigned int source, unsigned int size) {
   unsigned char data, checksum = 0;
   for(; size > 0; size--) { 
     data = eeprom_get_char(source++);
-    checksum = (checksum << 1) | (checksum >> 7);
+    checksum = (checksum << 1) | (checksum >> 7); // left circular shift for 1 bit
     checksum += data;    
     *(destination++) = data; 
   }

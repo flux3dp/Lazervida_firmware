@@ -105,7 +105,7 @@ void settings_write_coord_data(uint8_t coord_select, float *coord_data)
 void write_global_settings()
 {
   eeprom_put_char(0, SETTINGS_VERSION);
-  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_GLOBAL, (char*)&settings, sizeof(settings_t));
+  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_GLOBAL_GRBL_SETTINGS, (char*)&settings, sizeof(settings_t));
 }
 
 
@@ -121,24 +121,32 @@ void settings_restore(uint8_t restore_flag) {
     uint8_t idx;
     float coord_data[N_AXIS];
     memset(&coord_data, 0, sizeof(coord_data));
-    for (idx=0; idx <= SETTING_INDEX_NCOORD; idx++) { settings_write_coord_data(idx, coord_data); }
+    for (idx=0; idx <= SETTING_INDEX_NCOORD; idx++) { 
+      settings_write_coord_data(idx, coord_data); 
+    }
   }
 
   if (restore_flag & SETTINGS_RESTORE_STARTUP_LINES) {
     #if N_STARTUP_LINE > 0
-      eeprom_put_char(EEPROM_ADDR_STARTUP_BLOCK, 0);
-      eeprom_put_char(EEPROM_ADDR_STARTUP_BLOCK+1, 0); // Checksum
+      eeprom_put_char_n_bytes(
+        EEPROM_ADDR_STARTUP_BLOCK + 0*(LINE_BUFFER_SIZE+1), 
+        0, 
+        LINE_BUFFER_SIZE+1); // (Line buf) + (1-byte Checksum)
     #endif
     #if N_STARTUP_LINE > 1
-      eeprom_put_char(EEPROM_ADDR_STARTUP_BLOCK+(LINE_BUFFER_SIZE+1), 0);
-      eeprom_put_char(EEPROM_ADDR_STARTUP_BLOCK+(LINE_BUFFER_SIZE+2), 0); // Checksum
+      eeprom_put_char_n_bytes(
+        EEPROM_ADDR_STARTUP_BLOCK + 1*(LINE_BUFFER_SIZE+1), 
+        0, 
+        LINE_BUFFER_SIZE+1); // (Line buf) + (1-byte Checksum)
     #endif
     eeprom_is_changed = true;
   }
 
   if (restore_flag & SETTINGS_RESTORE_BUILD_INFO) {
-    eeprom_put_char(EEPROM_ADDR_BUILD_INFO , 0);
-    eeprom_put_char(EEPROM_ADDR_BUILD_INFO+1 , 0); // Checksum
+    eeprom_put_char_n_bytes(
+      EEPROM_ADDR_BUILD_INFO, 
+      0, 
+      LINE_BUFFER_SIZE+1); // (Line buf) + (1-byte Checksum)
     eeprom_is_changed = true;
   }
 
@@ -151,10 +159,11 @@ void settings_restore(uint8_t restore_flag) {
 // Reads startup line from EEPROM. Updated pointed line string data.
 uint8_t settings_read_startup_line(uint8_t n, char *line)
 {
-  uint32_t addr = n*(LINE_BUFFER_SIZE+1)+EEPROM_ADDR_STARTUP_BLOCK;
+  // NOTE: n should < N_STARTUP_LINE
+  uint32_t addr = n*(LINE_BUFFER_SIZE+1) + EEPROM_ADDR_STARTUP_BLOCK;
   if (!(memcpy_from_eeprom_with_checksum((char*)line, addr, LINE_BUFFER_SIZE))) {
     // Reset line with default value
-    line[0] = 0; // Empty line
+    memset(line, 0, LINE_BUFFER_SIZE); // Empty line
     settings_store_startup_line(n, line);
     return(false);
   }
@@ -167,7 +176,7 @@ uint8_t settings_read_build_info(char *line)
 {
   if (!(memcpy_from_eeprom_with_checksum((char*)line, EEPROM_ADDR_BUILD_INFO, LINE_BUFFER_SIZE))) {
     // Reset line with default value
-    line[0] = 0; // Empty line
+    memset(line, 0, LINE_BUFFER_SIZE); // Empty line
     settings_store_build_info(line);
     return(false);
   }
@@ -195,7 +204,7 @@ uint8_t read_global_settings() {
   uint8_t version = eeprom_get_char(0);
   if (version == SETTINGS_VERSION) {
     // Read settings-record and check checksum
-    if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL, sizeof(settings_t)))) {
+    if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL_GRBL_SETTINGS, sizeof(settings_t)))) {
       return(false);
     }
   } else {

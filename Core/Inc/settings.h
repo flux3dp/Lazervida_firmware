@@ -65,10 +65,12 @@
 // NOTE: The Atmega328p has 1KB EEPROM. The upper half is reserved for parameters and
 // the startup script. The lower half contains the global settings and space for future
 // developments.
-#define EEPROM_ADDR_GLOBAL         1U
-#define EEPROM_ADDR_PARAMETERS     512U
-#define EEPROM_ADDR_STARTUP_BLOCK  768U
-#define EEPROM_ADDR_BUILD_INFO     942U
+// The followings are the start byte index of each data in Virtual_EEPROM[]
+// The byte 0 is for settings VERSION
+#define EEPROM_ADDR_GLOBAL_GRBL_SETTINGS  1U
+#define EEPROM_ADDR_PARAMETERS            512U
+#define EEPROM_ADDR_STARTUP_BLOCK         768U
+#define EEPROM_ADDR_BUILD_INFO            942U
 
 // Define EEPROM address indexing for coordinate parameters
 #define N_COORDINATE_SYSTEM 6  // Number of supported work coordinate systems (from index 1)
@@ -83,7 +85,7 @@
 #define AXIS_SETTINGS_START_VAL  100 // NOTE: Reserving settings values >= 100 for axis settings. Up to 255.
 #define AXIS_SETTINGS_INCREMENT  10  // Must be greater than the number of axis settings
 
-// Global persistent settings (Stored from byte EEPROM_ADDR_GLOBAL onwards)
+// Global persistent settings (Stored from byte EEPROM_ADDR_GLOBAL_GRBL_SETTINGS onwards)
 typedef struct {
   // Axis settings
   float steps_per_mm[N_AXIS];
