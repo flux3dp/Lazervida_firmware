@@ -32,9 +32,6 @@
 #define LINE_FLAG_COMMENT_PARENTHESES bit(1)
 #define LINE_FLAG_COMMENT_SEMICOLON bit(2)
 
-
-bool MSA311_INT_triggered = false;
-
 static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
 
 static void protocol_exec_rt_suspend();
@@ -195,11 +192,6 @@ void protocol_main_loop()
           report_status_message(resp_status);
         }
       }
-    }
-
-    if (MSA311_INT_triggered) {
-      printString("MSA311 int\n");
-      MSA311_INT_triggered = false;
     }
 
     // If there are no more characters in the serial read buffer to be processed and executed,
@@ -831,16 +823,5 @@ static void protocol_exec_rt_suspend()
 
     protocol_exec_rt_system();
 
-  }
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  switch (GPIO_Pin) {
-    case GPIO_PIN_1:
-      MSA311_INT_triggered = true;
-      break;
-    default:
-      break;
   }
 }

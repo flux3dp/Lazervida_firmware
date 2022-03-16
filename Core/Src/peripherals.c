@@ -67,7 +67,7 @@ void I2C_scanning() {
     else if(ret == HAL_OK)
     {
       sprintf((char *)Buffer, "0x%X", i);
-      printString(Buffer);
+      printString((const char*)Buffer);
     }
   }
   printString("Done!]\r\n\r\n");
