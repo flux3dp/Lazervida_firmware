@@ -358,6 +358,10 @@ uint8_t gc_execute_line(const char *line)
             I2C_scanning();
             return (STATUS_OK);
           case 18:
+            start_firmware_update();
+            return (STATUS_INVALID_STATEMENT);
+          /*
+          case 18:
             print_uint8_base2_ndigit(MSA311_get_partid(), 8);
             printString("\n");
             return (STATUS_OK);
@@ -374,39 +378,47 @@ uint8_t gc_execute_line(const char *line)
             printString("\n");
             return (STATUS_OK);
           case 22:
-            print_uint8_base10(get_MSA311_partid());
-            printString("\n");
-            return (STATUS_OK);
-          case 23:
-            Adafruit_MSA311_begin(&hi2c1);
-            return (STATUS_OK);
-          case 24:
-            // enable all axes
-            Adafruit_MSA311_enableAxes(true, true, true);
-            return (STATUS_OK);
-          case 25:
-            // normal mode
-            Adafruit_MSA311_setPowerMode(MSA311_NORMALMODE);
-            return (STATUS_OK);
-          case 26:
-            // 500Hz rate
-            Adafruit_MSA311_setDataRate(MSA311_DATARATE_500_HZ);
-            // 250Hz bw
-            Adafruit_MSA311_setBandwidth(MSA311_BANDWIDTH_250_HZ);
-            return (STATUS_OK);
-          case 27:
-            Adafruit_MSA311_setRange(MSA311_RANGE_4_G);
-            return (STATUS_OK);
-          case 28:
-            Adafruit_MSA311_setRange(MSA311_RANGE_2_G);
-            return (STATUS_OK);
-          case 29:
-            Adafruit_MSA311_setRange(MSA311_RANGE_16_G);
-            return (STATUS_OK);
-          case 30:
             print_uint32_base2_ndigit(Adafruit_MSA311_getRange(), 2);
             printString("\n");
             return (STATUS_OK);
+          case 23:
+            print_uint8_base2_ndigit(Adafruit_MSA311_getMotionInterruptStatus(), 8);
+            printString("\n");
+            return (STATUS_OK);
+          case 24:
+            MSA311_setActiveInterruptThresh(10);
+            return (STATUS_OK);
+          case 25:
+            MSA311_setActiveInterruptThresh(100);
+            return (STATUS_OK);
+          case 26:
+            MSA311_setActiveInterruptThresh(150);
+            return (STATUS_OK);
+          case 27:
+            MSA311_setActiveInterruptThresh(200);
+            return (STATUS_OK);
+          case 28:
+            MSA311_setActiveInterruptThresh(90);
+            return (STATUS_OK);
+          case 29:
+            print_uint8_base10(MSA311_getActiveInterruptThresh());
+            return (STATUS_OK);
+          case 30:
+            MSA311_setActiveInterruptDur(MSA311_ACTIVEDUR_2_MS);
+            return (STATUS_OK);
+          case 31:
+            MSA311_setActiveInterruptDur(MSA311_ACTIVEDUR_3_MS);
+            return (STATUS_OK);
+          case 32:
+            MSA311_setActiveInterruptDur(MSA311_ACTIVEDUR_4_MS);
+            return (STATUS_OK);
+          case 33:
+            print_uint8_base10(MSA311_getActiveInterruptDur() + 1);
+            return (STATUS_OK);
+          case 34:
+            eeprom_dump();
+            return (STATUS_OK);
+          */
           default:
             FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
         }

@@ -28,5 +28,6 @@ void reset_stepper_MS1();
 void set_stepper_power();
 void reset_stepper_power();
 
+void start_firmware_update();
 
 #endif

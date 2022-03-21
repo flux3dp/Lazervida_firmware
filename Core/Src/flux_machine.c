@@ -5,7 +5,14 @@
 #include "stepper.h"
 #include "system.h"
 
+#define APP_ADDR                (FLASH_BASE + 0x9000)
+// NOTE: The page before APP_ADDR is for firmware update state indicator
+#define FW_UPDATE_METADATA_ADDR (APP_ADDR - FLASH_PAGE_SIZE)
+// NOTE: The last page (1KB = 0x400) is for non-volatile settings
+#define APP_SIZE                (DEV_FLASH_SIZE - 0x9000 - FLASH_PAGE_SIZE) 
+
 extern system_t sys;
+extern PCD_HandleTypeDef hpcd_USB_FS;
 
 volatile cmd_process_locker_t cmd_process_locker;
 volatile cmd_process_unlocker_t cmd_process_unlocker;
@@ -42,6 +49,31 @@ void set_stepper_power() {
 
 void reset_stepper_power() {
   HAL_GPIO_WritePin(MOTOR_PWR_GPIO_Port, MOTOR_PWR_Pin, GPIO_PIN_RESET);
+}
+
+void start_firmware_update() {
+  // 1. Erase the first page at APP addr
+  HAL_StatusTypeDef status;
+  HAL_FLASH_Unlock();
+  uint32_t PageError = 0;
+  FLASH_EraseInitTypeDef eraseinitstruct;
+  
+  eraseinitstruct.TypeErase = FLASH_TYPEERASE_PAGES;
+  eraseinitstruct.PageAddress = FW_UPDATE_METADATA_ADDR;
+  eraseinitstruct.NbPages = 1;
+  status = HAL_FLASHEx_Erase(&eraseinitstruct, &PageError);
+  
+  HAL_FLASH_Lock();
+  if(status != HAL_OK)
+  {
+    return;
+  }
+
+  // 2. Software Reset
+  delay_ms(1000);
+  HAL_PCD_Stop(&hpcd_USB_FS);
+  delay_ms(1000);
+  NVIC_SystemReset();
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
