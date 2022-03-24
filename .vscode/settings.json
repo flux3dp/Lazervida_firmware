@@ -5,6 +5,7 @@
     "cstring": "c",
     "fast_raster_print.h": "c",
     "main.h": "c",
-    "peripherals.h": "c"
+    "peripherals.h": "c",
+    "protocol.h": "c"
   }
 }

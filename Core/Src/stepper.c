@@ -297,17 +297,21 @@ void st_go_idle()
     HAL_GPIO_WritePin(STEP_DISABLE_GPIO_PORT, STEPPERS_DISABLE_PIN, GPIO_PIN_SET);
   }
 
+  // =============== FLUX's dedicated code ===============
   // NOTE: MS1 high -> save power and lower the heat dissipated
   //set_stepper_MS1();
   reset_stepper_power();
 
-  if (plan_get_block_buffer_count() != 0) {
-    // Just a Pause, might resume later
-  } else {
-    if (cmd_process_locker.fast_raster_print) {
-      cmd_process_unlocker.fast_raster_print = 1;
+  // End of a raster line instead of just a pause -> unlock D4PL or D5
+  if (cmd_process_locker.fast_raster_print) {
+    if (is_printing_fast_raster_line() && plan_get_block_buffer_count() == 0) {
+      fast_raster_mode_finish_current_line();
     }
+    cmd_process_unlocker.fast_raster_print = 1;
+    //printString("[Unlocked]\n");
   }
+
+  // =====================================================
 }
 
 bool st_is_current_prep_block_empty() {

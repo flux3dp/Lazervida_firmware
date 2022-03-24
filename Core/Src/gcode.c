@@ -299,8 +299,8 @@ uint8_t gc_execute_line(const char *line)
         if ( bit_istrue(command_words,bit(word_bit)) ) { FAIL(STATUS_GCODE_MODAL_GROUP_VIOLATION); }
         command_words |= bit(word_bit);
         break;
-
-      case 'B': // FLUX's dedicated commands
+      // ===================== FLUX's dedicated commands =======================
+      case 'B':
         switch(int_value) {
           case 1:
             set_stepper_MS1();
@@ -433,19 +433,21 @@ uint8_t gc_execute_line(const char *line)
               return (STATUS_GCODE_CMD_LOCKED);
             }
             fast_raster_mode_switch_off(); // Reset fast raster mode context first
-            set_fast_raster_print_resolution(kRasterHighRes); // default: High Res
             if(line[char_counter] == 'R') // D0R[Resolution]
             {
               char_counter++;
               if (line[char_counter] == 'L') {
-                set_fast_raster_print_resolution(kRasterLowRes);
+                fast_raster_mode_switch_on(settings.steps_per_mm[X_AXIS], kRasterLowRes);
               } else if(line[char_counter] == 'M') {
-                set_fast_raster_print_resolution(kRasterMidRes);
+                fast_raster_mode_switch_on(settings.steps_per_mm[X_AXIS], kRasterMidRes);
               } else if(line[char_counter] == 'U') {
-                set_fast_raster_print_resolution(kRasterUltraHighRes);
+                fast_raster_mode_switch_on(settings.steps_per_mm[X_AXIS], kRasterUltraHighRes);
+              } else { // 'H' or others
+                fast_raster_mode_switch_on(settings.steps_per_mm[X_AXIS], kRasterHighRes);
               }
+            } else {
+              fast_raster_mode_switch_on(settings.steps_per_mm[X_AXIS], kRasterHighRes);
             }
-            fast_raster_mode_switch_on(settings.steps_per_mm[X_AXIS]);
             // After B253, 
             // Expect to Receive and Execute the first G1 moving cmd to the init pos
             return (STATUS_OK);
@@ -502,7 +504,8 @@ uint8_t gc_execute_line(const char *line)
             FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
         }
         break;
-      
+      // =================== End of FLUX's dedicated commands =====================
+
       // NOTE: All remaining letters assign values.
       default:
 

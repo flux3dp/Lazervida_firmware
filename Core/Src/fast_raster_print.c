@@ -14,20 +14,20 @@
 typedef enum
 {
   kLinePatternEmpty,
-  kLinePatternFilling,
-  kLinePatternReady,
-  kLinePatternPrinting,
+  kLinePatternFilling,  // Accepting D2W cmd
+  kLinePatternReady,    // D3FE accepted
+  kLinePatternPrinting, // D4PL accepted
   kLinePatternFinish
-}LinePatternBufStatus;
+} LinePatternBufStatus;
 
-typedef struct LinePatterCtx
+typedef struct LinePatternCtx
 {
   LinePatternBufStatus status;
   uint16_t pixel_cnt;
   uint16_t filling_byte_head;
   uint16_t printing_pixel_idx; // bit (pixel) index
   uint8_t buf[LASER_PROFILE_BUFFER_SIZE];
-} LinePatterCtx;
+} LinePatternCtx;
 
 typedef struct FastRasterPrintCtx
 {
@@ -35,67 +35,58 @@ typedef struct FastRasterPrintCtx
   FastRasterPrintRes resolution;
   float steps_per_mm;
 
-  LinePatterCtx current_printing_line; 
-  LinePatterCtx current_filling_line;  
+  uint8_t filling_line_idx;
+  uint8_t printing_line_idx;
+  LinePatternCtx line_ctx_array[2]; 
 
-  uint32_t current_line_step_cnt; // the count of step has been traveled in the current printing line, reset to 0 in each D4PL, increment in TIM interrupt
+  uint32_t current_step_idx; // the count of step that has been traveled in the current printing line, reset to 0 in each D4PL, increment in TIM interrupt
 } FastRasterPrintCtx;
 
 
-static volatile FastRasterPrintCtx fast_raster_print_ctx = {0};
+static FastRasterPrintCtx raster_ctx = {0};
 
 
 static void reset_graient_mode_ctx()
 {
-  memset((void*)(&fast_raster_print_ctx), 0, sizeof(FastRasterPrintCtx));
-  fast_raster_print_ctx.current_printing_line.status = kLinePatternEmpty;
-  fast_raster_print_ctx.current_filling_line.status = kLinePatternEmpty;
+  memset((void*)(&raster_ctx), 0, sizeof(FastRasterPrintCtx));
+  raster_ctx.filling_line_idx = 0;
+  raster_ctx.printing_line_idx = 1;
+  raster_ctx.line_ctx_array[raster_ctx.filling_line_idx].status = kLinePatternEmpty;
+  raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].status = kLinePatternEmpty;
+  raster_ctx.resolution = kRasterHighRes;
 }
 
 
-
-void fast_raster_mode_switch_on(float _steps_per_mm)
+void fast_raster_mode_switch_on(float steps_per_mm, FastRasterPrintRes res)
 {
-  fast_raster_print_ctx.mode = kFastRasterPrintOn;
-  fast_raster_print_ctx.steps_per_mm = _steps_per_mm;
+  raster_ctx.mode = kFastRasterPrintOn;
+  raster_ctx.steps_per_mm = steps_per_mm;
+  raster_ctx.resolution = res;
 }
-
 
 
 void fast_raster_mode_switch_off()
 {
-  fast_raster_print_ctx.mode = kFastRasterPrintOff;
+  raster_ctx.mode = kFastRasterPrintOff;
   reset_graient_mode_ctx();
 }
 
 
-
 bool is_in_fast_raster_mode()
 {
-  if(fast_raster_print_ctx.mode == kFastRasterPrintOn)
+  if(raster_ctx.mode == kFastRasterPrintOn)
     return true;
   else
     return false;
 }
 
 
-int set_fast_raster_print_resolution(FastRasterPrintRes new_res)
-{
-  if(is_in_fast_raster_mode()) // resolution is always set with turning on fast raster print mode
-  {
-    return -1;
-  }
-
-  fast_raster_print_ctx.resolution = new_res;
-  return 0;
-}
-
 /**
  * @retval mm per pixel 
  */
 float get_fast_raster_print_resolution()
 {
-  switch(fast_raster_print_ctx.resolution)
+  switch(raster_ctx.resolution)
   {
     case kRasterUltraHighRes:
       return 0.025f;
@@ -121,16 +112,18 @@ float get_fast_raster_print_resolution()
  */
 int fast_raster_mode_start_fill_new_line(uint16_t pixel_cnt)
 {
-  if( fast_raster_print_ctx.current_filling_line.status == kLinePatternEmpty )
+  LinePatternCtx *filling_line_ctx = &(raster_ctx.line_ctx_array[raster_ctx.filling_line_idx]);
+  if( filling_line_ctx->status == kLinePatternEmpty )
   {
     if(pixel_cnt > LASER_PROFILE_BUFFER_SIZE * 8) // Exceed the available buffer space
     {
-      return -1;
+      // trim pixel count to conform the buffer size
+      pixel_cnt = LASER_PROFILE_BUFFER_SIZE * 8;
     }
 
-    fast_raster_print_ctx.current_filling_line.pixel_cnt = pixel_cnt;
-    fast_raster_print_ctx.current_filling_line.filling_byte_head = 0;
-    fast_raster_print_ctx.current_filling_line.status = kLinePatternFilling;
+    filling_line_ctx->pixel_cnt = pixel_cnt;
+    filling_line_ctx->filling_byte_head = 0;
+    filling_line_ctx->status = kLinePatternFilling;
     return 0;
   }
 
@@ -140,27 +133,32 @@ int fast_raster_mode_start_fill_new_line(uint16_t pixel_cnt)
 
 
 /**
- * 
- *  @retval 0 if success, others if fail
+ * @brief Fill data into the buffer
+ *        Discard data if exceeding pixel count
+ * @param new_32_pixels 32 pixels of data acquired from D2W command
+ * @retval 0 if success, others if fail
  */
 int fast_raster_mode_fill_line_buffer(uint32_t new_32_pixels)    
 {
   int i;
   uint8_t new_byte;
-  if(fast_raster_print_ctx.current_filling_line.status == kLinePatternFilling)
+  LinePatternCtx *filling_line_ctx = &(raster_ctx.line_ctx_array[raster_ctx.filling_line_idx]);
+  if(filling_line_ctx->status == kLinePatternFilling)
   {
     // Has already filled the expected number of pixel before entering this function
-    if ( fast_raster_print_ctx.current_filling_line.pixel_cnt == 0 
-        || fast_raster_print_ctx.current_filling_line.filling_byte_head > (fast_raster_print_ctx.current_filling_line.pixel_cnt-1)/8 ) { 
-      return -1; 
+    // NOTE: Simply ignore data exceeding pixel count without return error
+    if ( filling_line_ctx->pixel_cnt == 0 
+        || ( filling_line_ctx->filling_byte_head > (filling_line_ctx->pixel_cnt-1)/8 ) 
+        ) { 
+      return 0; 
     }
-        
+
     for(i = 0; i < 4; i++)
     {
       new_byte = 0xFF & (new_32_pixels >> ((3-i)*8));
-      fast_raster_print_ctx.current_filling_line.buf[fast_raster_print_ctx.current_filling_line.filling_byte_head] = new_byte;
-      fast_raster_print_ctx.current_filling_line.filling_byte_head += 1;
-      if(fast_raster_print_ctx.current_filling_line.filling_byte_head > (fast_raster_print_ctx.current_filling_line.pixel_cnt-1)/8)
+      filling_line_ctx->buf[filling_line_ctx->filling_byte_head] = new_byte;
+      filling_line_ctx->filling_byte_head += 1;
+      if(filling_line_ctx->filling_byte_head > (filling_line_ctx->pixel_cnt-1)/8)
       {
         break;
       }
@@ -178,8 +176,9 @@ int fast_raster_mode_fill_line_buffer(uint32_t new_32_pixels)
 
 int fast_raster_mode_finish_line_filling()
 {
-  if(fast_raster_print_ctx.current_filling_line.status == kLinePatternFilling){
-      fast_raster_print_ctx.current_filling_line.status = kLinePatternReady;
+  LinePatternCtx *filling_line_ctx = &(raster_ctx.line_ctx_array[raster_ctx.filling_line_idx]);
+  if(filling_line_ctx->status == kLinePatternFilling){
+      filling_line_ctx->status = kLinePatternReady;
     return 0;
   } else {
     return -1;
@@ -188,28 +187,37 @@ int fast_raster_mode_finish_line_filling()
 
 
 /**
- *
+ * @brief triggered by D4PL cmd
+ * 
  * @retval: 0: successfully load a new line for printing
  *          -1: failed
  */
 int fast_raster_mode_start_print_new_line()
 {
-  if( fast_raster_print_ctx.current_printing_line.status == kLinePatternFinish 
-      || fast_raster_print_ctx.current_printing_line.status == kLinePatternEmpty )
+  LinePatternCtx *printing_line_ctx = &(raster_ctx.line_ctx_array[raster_ctx.printing_line_idx]);
+  LinePatternCtx *filling_line_ctx = &(raster_ctx.line_ctx_array[raster_ctx.filling_line_idx]);
+  uint8_t temp_idx;
+  if( printing_line_ctx->status == kLinePatternFinish 
+      || printing_line_ctx->status == kLinePatternEmpty )
   {
     // Try to load a new line from filling line and reset the filling line
-    if(fast_raster_print_ctx.current_filling_line.status == kLinePatternReady) 
+    if(filling_line_ctx->status == kLinePatternReady) 
     {
-      memcpy((void*)(&(fast_raster_print_ctx.current_printing_line)), (void*)(&(fast_raster_print_ctx.current_filling_line)), sizeof(LinePatterCtx));
-      fast_raster_print_ctx.current_printing_line.printing_pixel_idx = 0;
-      fast_raster_print_ctx.current_printing_line.status = kLinePatternPrinting;
-            
-      memset((void*)(&(fast_raster_print_ctx.current_filling_line)), 0, sizeof(LinePatterCtx));
-      fast_raster_print_ctx.current_filling_line.pixel_cnt = 0;
-      fast_raster_print_ctx.current_filling_line.filling_byte_head = 0;
-      fast_raster_print_ctx.current_filling_line.status = kLinePatternEmpty;
+      
+      // Swap filling line and printing line
+      temp_idx = raster_ctx.printing_line_idx;
+      raster_ctx.printing_line_idx = raster_ctx.filling_line_idx;
+      raster_ctx.filling_line_idx = temp_idx;
+      printing_line_ctx = &(raster_ctx.line_ctx_array[raster_ctx.printing_line_idx]);
+      filling_line_ctx = &(raster_ctx.line_ctx_array[raster_ctx.filling_line_idx]);
 
-      fast_raster_print_ctx.current_line_step_cnt = 0;
+      // Update status
+      printing_line_ctx->printing_pixel_idx = 0;
+      printing_line_ctx->status = kLinePatternPrinting;
+      filling_line_ctx->pixel_cnt = 0;
+      filling_line_ctx->filling_byte_head = 0;
+      filling_line_ctx->status = kLinePatternEmpty;
+      raster_ctx.current_step_idx = 0;
 
       //printString("[DEBUG: Start Printing Line]\n");
 
@@ -217,7 +225,7 @@ int fast_raster_mode_start_print_new_line()
     } else {
       //printString("[DEBUG: NREADY]\n");
     }
-  } else if (fast_raster_print_ctx.current_printing_line.status == kLinePatternPrinting ){
+  } else if (printing_line_ctx->status == kLinePatternPrinting ){
     //printf("DEBUG: Current Line Printing\n");
     //printString("[DEBUG: CLP]\n");
   } else {
@@ -230,7 +238,7 @@ int fast_raster_mode_start_print_new_line()
 
 bool is_printing_fast_raster_line()
 {
-  if(fast_raster_print_ctx.current_printing_line.status == kLinePatternPrinting){
+  if(raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].status == kLinePatternPrinting){
     return true;
   } else {
     return false;
@@ -239,25 +247,25 @@ bool is_printing_fast_raster_line()
 
 void fast_raster_mode_inc_one_step()
 {
-  if(fast_raster_print_ctx.current_printing_line.status == kLinePatternPrinting)
-    fast_raster_print_ctx.current_line_step_cnt += 1;
+  if(raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].status == kLinePatternPrinting)
+    raster_ctx.current_step_idx += 1;
 }
 
 
 void fast_raster_mode_finish_current_line()
 {
-  fast_raster_print_ctx.current_printing_line.status = kLinePatternFinish;
+  raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].status = kLinePatternFinish;
 }
 
 
 static float fast_raster_mode_get_steps_per_pixel()
 {
-  return (get_fast_raster_print_resolution() * fast_raster_print_ctx.steps_per_mm);
+  return (get_fast_raster_print_resolution() * raster_ctx.steps_per_mm);
 }
 
 static uint16_t fast_raster_mode_get_printing_pixel_idx()
 {
-  return fast_raster_print_ctx.current_printing_line.printing_pixel_idx;
+  return raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].printing_pixel_idx;
 }
 
 /**
@@ -275,13 +283,13 @@ static uint32_t fast_raster_mode_get_nearest_boundary()
 
 bool is_on_fast_raster_mode_pixel_boundary()
 {
-  if(fast_raster_print_ctx.current_printing_line.status != kLinePatternPrinting)
+  if(raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].status != kLinePatternPrinting)
   {
     return false;
   }
 
   // Check step index with pixel boundary
-  if ( fast_raster_print_ctx.current_line_step_cnt == fast_raster_mode_get_nearest_boundary()) {
+  if ( raster_ctx.current_step_idx == fast_raster_mode_get_nearest_boundary()) {
     return true;
   } else {
     return false;
@@ -297,36 +305,38 @@ bool is_on_fast_raster_mode_pixel_boundary()
 uint8_t fast_raster_mode_pop_printing_bit()
 {
   uint8_t result = 0;
-
-  if(fast_raster_print_ctx.current_printing_line.status != kLinePatternPrinting)
+  LinePatternCtx *current_print_line = &(raster_ctx.line_ctx_array[raster_ctx.printing_line_idx]);
+  if(current_print_line->status != kLinePatternPrinting)
   {
     return 0;
   }
 
   // Exceed pixel count, always return 0
-  if(fast_raster_print_ctx.current_printing_line.printing_pixel_idx >= fast_raster_print_ctx.current_printing_line.pixel_cnt)
+  if(current_print_line->printing_pixel_idx >= current_print_line->pixel_cnt)
   {
     return 0;
   }
 
-  result = fast_raster_print_ctx.current_printing_line.buf[fast_raster_print_ctx.current_printing_line.printing_pixel_idx/8]; // get the current byte
-  result >>= ( 7 - fast_raster_print_ctx.current_printing_line.printing_pixel_idx % 8 ); // move the current pixel to bit-1
+  result = current_print_line->buf[current_print_line->printing_pixel_idx / 8]; // get the current byte
+  result >>= ( 7 - current_print_line->printing_pixel_idx % 8 ); // move the current pixel to bit-1
   result &= 0x1; // filter out other bits
 
-  fast_raster_print_ctx.current_printing_line.printing_pixel_idx += 1;
+  current_print_line->printing_pixel_idx += 1;
     
   return result;
 }
 
+/*
 bool is_fast_raster_mode_no_pixel_remained() {
-  if (fast_raster_mode_get_printing_pixel_idx() >= fast_raster_print_ctx.current_printing_line.pixel_cnt) {
+  if (fast_raster_mode_get_printing_pixel_idx() >= 
+      raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].pixel_cnt) {
     return true;
   } else {
     return false;
   }
 }
-
-
+*/
+/*
 void show_fast_raster_mode_ctx()
 {
   if(is_in_fast_raster_mode()){
@@ -380,7 +390,7 @@ void dump_fast_raster_mode_filling_buf()
   }
   printf("\n");
 }
-
+*/
 
 
 
@@ -404,7 +414,10 @@ void fast_raster_print_DPC_handler(const char *line)
   }
 }
 
-// D2W[hhhhhhhh]: Fill 32 pixels (a Word of data)
+/**
+ * @brief Fill n*32 pixels (n Words of data)
+ * @param line D2W[hhhhhhhh...] (8*n hex char)
+ */
 void fast_raster_print_DW_handler(const char *line)
 {
   char *strchr_pointer = strchr(line, 'W');

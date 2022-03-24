@@ -22,11 +22,9 @@ typedef enum
 
 
 bool is_in_fast_raster_mode();
-void fast_raster_mode_switch_on(float steps_per_mm);
+void fast_raster_mode_switch_on(float steps_per_mm, FastRasterPrintRes res);
 void fast_raster_mode_switch_off();
 
-// Set x-axis raster resolution
-int set_fast_raster_print_resolution(FastRasterPrintRes new_res);
 // mm per pixel
 float get_fast_raster_print_resolution();
 
@@ -44,7 +42,7 @@ bool is_on_fast_raster_mode_pixel_boundary();
 uint8_t fast_raster_mode_pop_printing_bit();
 
 // for st_go_idle() to determine whether to finish current line
-bool is_fast_raster_mode_no_pixel_remained(); 
+//bool is_fast_raster_mode_no_pixel_remained(); 
 void fast_raster_mode_finish_current_line();
 
 void fast_raster_print_DPC_handler(const char *line);
@@ -55,8 +53,8 @@ bool fast_raster_print_DPL_handler();
 /**
  *  For debug only
  */
-void show_fast_raster_mode_ctx();
-void dump_fast_raster_mode_filling_buf();
+//void show_fast_raster_mode_ctx();
+//void dump_fast_raster_mode_filling_buf();
 
 
 #endif
