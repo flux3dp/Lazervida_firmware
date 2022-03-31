@@ -847,7 +847,7 @@ void st_prep_buffer()
     float step_dist_remaining = prep.step_per_mm*mm_remaining; // Convert mm_remaining to steps
     float n_steps_remaining = ceil(step_dist_remaining); // Round-up current steps remaining
     float last_n_steps_remaining = ceil(prep.steps_remaining); // Round-up last steps remaining
-    prep_segment->n_step = last_n_steps_remaining-n_steps_remaining; // Compute number of steps to execute.
+    prep_segment->n_step = last_n_steps_remaining - n_steps_remaining; // Compute number of steps to execute.
 
     // Bail if we are at the end of a feed hold and don't have a step to execute.
     if (prep_segment->n_step == 0) {
@@ -875,7 +875,7 @@ void st_prep_buffer()
 
     // Compute CPU cycles per step for the prepped segment.
     // WARNING: Should be aware of the max value of uint32_t (the calculated value might exceed this max)
-    uint32_t cycles = (uint32_t)ceilf((TICKS_PER_MICROSECOND * 1000000) *inv_rate * 60); // (cycles/step)
+    uint32_t cycles = (uint32_t)ceilf((TICKS_PER_MICROSECOND * 1000000) *inv_rate * 60 / (htim2.Init.Prescaler + 1)); // (cycles/step)
     #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
       // Compute step timing and multi-axis smoothing level.
       // NOTE: AMASS overdrives the timer with each level, so only one prescalar is required.
