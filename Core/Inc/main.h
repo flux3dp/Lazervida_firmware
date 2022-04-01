@@ -98,10 +98,6 @@ extern I2C_HandleTypeDef hi2c1;
 #define MSA311_INT_EXTI_IRQn EXTI1_IRQn
 #define LASER_EN_Pin GPIO_PIN_2
 #define LASER_EN_GPIO_Port GPIOA
-#define BASE_DETECT_Pin GPIO_PIN_3
-#define BASE_DETECT_GPIO_Port GPIOA
-#define FAN_EN_Pin GPIO_PIN_4
-#define FAN_EN_GPIO_Port GPIOA
 #define LIMIT_Y_Pin GPIO_PIN_5
 #define LIMIT_Y_GPIO_Port GPIOA
 #define DETECT_3V3_Pin GPIO_PIN_6
@@ -122,8 +118,6 @@ extern I2C_HandleTypeDef hi2c1;
 #define DIR_X_GPIO_Port GPIOB
 #define STEP_X_Pin GPIO_PIN_4
 #define STEP_X_GPIO_Port GPIOB
-#define DOOR_DETECT_Pin GPIO_PIN_5
-#define DOOR_DETECT_GPIO_Port GPIOB
 #define I2C1_SCL_Pin GPIO_PIN_6
 #define I2C1_SCL_GPIO_Port GPIOB
 #define I2C1_SDA_Pin GPIO_PIN_7

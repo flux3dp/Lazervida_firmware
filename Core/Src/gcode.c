@@ -329,35 +329,23 @@ uint8_t gc_execute_line(const char *line)
             gc_block.values.s = 0;
             return (STATUS_OK);
           case 9:
-            turn_on_fan();
-            return (STATUS_OK);
-          case 10:
-            turn_off_fan();
-            return (STATUS_OK);
-          case 11:
             print_uint32_base10(DETECT_3V3_VALUE);
             printString("\n");
             return (STATUS_OK);
-          case 12:
-            door_is_open() ? printString("Door opened\n") : printString("Door closed\n");
-            return (STATUS_OK);
-          case 13:
-            base_is_open() ? printString("Bottom opened\n") : printString("Bottom closed\n");
-            return (STATUS_OK);
-          case 14:
+          case 10:
             print_uint8_base2_ndigit(limits_get_state(), 2);
             printString("\n");
             return (STATUS_OK);
-          case 15:
+          case 11:
             set_power_24v();
             return (STATUS_OK);
-          case 16:
+          case 12:
             reset_power_24v();
             return (STATUS_OK);
-          case 17:
+          case 13:
             I2C_scanning();
             return (STATUS_OK);
-          case 18:
+          case 14:
             start_firmware_update();
             return (STATUS_INVALID_STATEMENT);
           /*

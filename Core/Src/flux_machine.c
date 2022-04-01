@@ -20,14 +20,6 @@ volatile cmd_process_unlocker_t cmd_process_unlocker;
 bool MSA311_INT_triggered = false;
 
 void flux_periodic_handling() {
-  /*
-  if (door_is_open()) {
-    system_set_exec_state_flag(EXEC_SAFETY_DOOR);
-  }
-  if (base_is_open()) {
-    system_set_exec_state_flag(EXEC_SAFETY_DOOR);
-  }
-  */
   if (MSA311_INT_triggered) {
     printString("[DEBUG: MSA311 int]\n");
     MSA311_INT_triggered = false;

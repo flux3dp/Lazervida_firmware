@@ -6,10 +6,6 @@
 #include "Adafruit_MSA311.h"
 
 void peripherals_init();
-void turn_on_fan();
-void turn_off_fan();
-void toggle_fan();
-bool get_fan_state();
 
 void I2C_scanning();
 
