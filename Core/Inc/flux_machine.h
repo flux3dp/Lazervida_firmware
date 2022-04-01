@@ -25,8 +25,8 @@ void flux_periodic_handling();
 
 void set_stepper_MS1();
 void reset_stepper_MS1();
-void set_stepper_power();
-void reset_stepper_power();
+void set_power_24v();
+void reset_power_24v();
 
 void start_firmware_update();
 

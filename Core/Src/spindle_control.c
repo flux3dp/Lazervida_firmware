@@ -290,9 +290,9 @@ void spindle_stop()
       sys.spindle_speed = 0.0;
     #endif
     spindle_stop();
-  
+    reset_power_24v();
   } else {
-    
+    set_power_24v();
     #if !defined(USE_SPINDLE_DIR_AS_ENABLE_PIN) && !defined(ENABLE_DUAL_AXIS)
       if (state == SPINDLE_ENABLE_CW) {
         //SPINDLE_DIRECTION_PORT &= ~(1<<SPINDLE_DIRECTION_BIT);

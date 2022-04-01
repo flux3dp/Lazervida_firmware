@@ -5,7 +5,8 @@
 #include <stdio.h>
 
 /**
- * @brief Initialize FAN
+ * @brief Initialize Power 24V (and fan on laser head)
+ *                      NOTE: MUST enable 24V to enable motor/laser
  *                   I2C (for RGB-led and G-sensor)
  * 
  */
@@ -14,6 +15,12 @@ void peripherals_init() {
   HAL_GPIO_WritePin(GPIOA, FAN_EN_Pin, GPIO_PIN_RESET);
   
   /*Configure GPIO pins : FAN_EN_Pin */
+  GPIO_InitStruct.Pin = PWR_24V_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   GPIO_InitStruct.Pin = FAN_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;

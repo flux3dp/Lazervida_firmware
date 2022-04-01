@@ -237,7 +237,7 @@ void st_wake_up()
 
   // Set MS1 to active state (high power)
   //reset_stepper_MS1();
-  set_stepper_power();
+  set_power_24v();
 
   // Initialize stepper output bits to ensure first ISR call does not step.
   st.step_outbits = step_port_invert_mask;
@@ -300,7 +300,7 @@ void st_go_idle()
   // =============== FLUX's dedicated code ===============
   // NOTE: MS1 high -> save power and lower the heat dissipated
   //set_stepper_MS1();
-  reset_stepper_power();
+  reset_power_24v();
 
   // End of a raster line instead of just a pause -> unlock D4PL or D5
   if (cmd_process_locker.fast_raster_print) {
@@ -434,12 +434,6 @@ void stepper_init()
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = MOTOR_PWR_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING

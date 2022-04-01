@@ -349,10 +349,10 @@ uint8_t gc_execute_line(const char *line)
             printString("\n");
             return (STATUS_OK);
           case 15:
-            set_stepper_power();
+            set_power_24v();
             return (STATUS_OK);
           case 16:
-            reset_stepper_power();
+            reset_power_24v();
             return (STATUS_OK);
           case 17:
             I2C_scanning();

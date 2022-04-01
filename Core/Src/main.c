@@ -616,7 +616,7 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, MOTOR_PWR_Pin|LASER_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, PWR_24V_Pin|LASER_EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, FAN_EN_Pin|STEP_EN_INV_Pin|MS1_Pin, GPIO_PIN_SET);
@@ -624,8 +624,8 @@ void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, DIR_Y_Pin|STEP_Y_Pin|DIR_X_Pin|STEP_X_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : MOTOR_PWR_Pin LASER_EN_Pin */
-  GPIO_InitStruct.Pin = MOTOR_PWR_Pin|LASER_EN_Pin;
+  /*Configure GPIO pins : PWR_24V_Pin LASER_EN_Pin */
+  GPIO_InitStruct.Pin = PWR_24V_Pin|LASER_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;

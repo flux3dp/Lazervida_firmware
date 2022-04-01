@@ -43,12 +43,12 @@ void reset_stepper_MS1() {
   HAL_GPIO_WritePin(MS1_GPIO_Port, MS1_Pin, GPIO_PIN_RESET);
 }
 
-void set_stepper_power() {
-  HAL_GPIO_WritePin(MOTOR_PWR_GPIO_Port, MOTOR_PWR_Pin, GPIO_PIN_SET);
+void set_power_24v() {
+  HAL_GPIO_WritePin(PWR_24V_GPIO_Port, PWR_24V_Pin, GPIO_PIN_SET);
 }
 
-void reset_stepper_power() {
-  HAL_GPIO_WritePin(MOTOR_PWR_GPIO_Port, MOTOR_PWR_Pin, GPIO_PIN_RESET);
+void reset_power_24v() {
+  HAL_GPIO_WritePin(PWR_24V_GPIO_Port, PWR_24V_Pin, GPIO_PIN_RESET);
 }
 
 void start_firmware_update() {

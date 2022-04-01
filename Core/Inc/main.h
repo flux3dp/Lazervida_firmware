@@ -91,8 +91,8 @@ extern I2C_HandleTypeDef hi2c1;
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define MOTOR_PWR_Pin GPIO_PIN_0
-#define MOTOR_PWR_GPIO_Port GPIOA
+#define PWR_24V_Pin GPIO_PIN_0
+#define PWR_24V_GPIO_Port GPIOA
 #define MSA311_INT_Pin GPIO_PIN_1
 #define MSA311_INT_GPIO_Port GPIOA
 #define MSA311_INT_EXTI_IRQn EXTI1_IRQn
