@@ -21,6 +21,7 @@
 
 #include "grbl.h"
 #include "main.h"
+#include "flux_machine.h"
 
 
 #ifdef VARIABLE_SPINDLE
