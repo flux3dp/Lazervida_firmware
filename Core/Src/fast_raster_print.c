@@ -197,9 +197,9 @@ int fast_raster_mode_start_print_new_line()
   LinePatternCtx *printing_line_ctx = &(raster_ctx.line_ctx_array[raster_ctx.printing_line_idx]);
   LinePatternCtx *filling_line_ctx = &(raster_ctx.line_ctx_array[raster_ctx.filling_line_idx]);
   uint8_t temp_idx;
-  if( printing_line_ctx->status == kLinePatternFinish 
-      || printing_line_ctx->status == kLinePatternEmpty )
-  {
+  //if( printing_line_ctx->status == kLinePatternFinish 
+  //    || printing_line_ctx->status == kLinePatternEmpty )
+  //{
     // Try to load a new line from filling line and reset the filling line
     if(filling_line_ctx->status == kLinePatternReady) 
     {
@@ -225,12 +225,12 @@ int fast_raster_mode_start_print_new_line()
     } else {
       //printString("[DEBUG: NREADY]\n");
     }
-  } else if (printing_line_ctx->status == kLinePatternPrinting ){
-    //printf("DEBUG: Current Line Printing\n");
-    //printString("[DEBUG: CLP]\n");
-  } else {
-    //printString("[DEBUG: ELSE]\n");
-  }
+  //} else if (printing_line_ctx->status == kLinePatternPrinting ){
+  //  //printf("DEBUG: Current Line Printing\n");
+  //  //printString("[DEBUG: CLP]\n");
+  //} else {
+  //  //printString("[DEBUG: ELSE]\n");
+  //}
 
   return -1;
 }
