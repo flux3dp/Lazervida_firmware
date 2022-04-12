@@ -640,7 +640,7 @@ void MX_GPIO_Init(void)
   /*Configure GPIO pins : LIMIT_Y_Pin LIMIT_X_Pin */
   GPIO_InitStruct.Pin = LIMIT_Y_Pin|LIMIT_X_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : DIR_Y_Pin STEP_Y_Pin DIR_X_Pin STEP_X_Pin */
