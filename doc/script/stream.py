@@ -115,7 +115,7 @@ if check_mode :
             if verbose: print 'REC:',grbl_out
             break
 
-start_time = time.time();
+start_time = time.time()
 
 # Start status report periodic timer
 if ENABLE_STATUS_REPORTS :
@@ -172,6 +172,8 @@ else:
                 del c_line[0] # Delete the block character count corresponding to the last 'ok'
         s.write(l_block + '\n') # Send g-code block to grbl
         if verbose: print "SND>"+str(l_count)+": \"" + l_block + "\""
+    
+    # All GCode have been sent
     # Wait until all responses have been received.
     while l_count > g_count :
         out_temp = s.readline().strip() # Wait for grbl response
@@ -185,8 +187,8 @@ else:
 
 # Wait for user input after streaming is completed
 print "\nG-code streaming finished!"
-end_time = time.time();
-is_run = False;
+end_time = time.time()
+is_run = False
 print " Time elapsed: ",end_time-start_time,"\n"
 if check_mode :
     if error_count > 0 :
