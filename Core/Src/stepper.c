@@ -290,17 +290,17 @@ void st_go_idle()
   }
   if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) { pin_state = !pin_state; } // Apply pin invert.
   if (pin_state) {
-    // Motor is inactive when the disable pin is High (normal)
+    // Inactivate motor (the disable pin is High)
     HAL_GPIO_WritePin(STEP_DISABLE_GPIO_PORT, STEPPERS_DISABLE_PIN, GPIO_PIN_SET);
+    // =============== FLUX's dedicated code ===============
+    // NOTE: MS1 high -> save power and lower the heat dissipated
+    //set_stepper_MS1();
+    reset_power_24v();
   } else { 
-    // Motor is inactive when the disable pin is Low (inverted)
-    HAL_GPIO_WritePin(STEP_DISABLE_GPIO_PORT, STEPPERS_DISABLE_PIN, GPIO_PIN_SET);
+    // Keep motor in activated state (active when the disable pin is Low) (normal)
+    HAL_GPIO_WritePin(STEP_DISABLE_GPIO_PORT, STEPPERS_DISABLE_PIN, GPIO_PIN_RESET);
   }
 
-  // =============== FLUX's dedicated code ===============
-  // NOTE: MS1 high -> save power and lower the heat dissipated
-  //set_stepper_MS1();
-  reset_power_24v();
 
   // End of a raster line instead of just a pause -> unlock D4PL or D5
   if (cmd_process_locker.fast_raster_print) {

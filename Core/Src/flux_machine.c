@@ -19,11 +19,26 @@ volatile cmd_process_unlocker_t cmd_process_unlocker;
 
 bool MSA311_INT_triggered = false;
 
+uint32_t last_motor_active = 0;
+
 void flux_periodic_handling() {
   if (MSA311_INT_triggered) {
     printString("[DEBUG: MSA311 int]\n");
     MSA311_INT_triggered = false;
     bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+  }
+
+  // Disable motor when idle for 5 seconds
+  if (HAL_GPIO_ReadPin(STEP_DISABLE_GPIO_PORT, STEPPERS_DISABLE_PIN) == GPIO_PIN_RESET) {
+    if (sys.state == STATE_IDLE || sys.state == STATE_ALARM) {
+      // do nothing
+    } else {
+      last_motor_active = millis();
+    }
+    if (millis() - last_motor_active > 5000) {
+      HAL_GPIO_WritePin(STEP_DISABLE_GPIO_PORT, STEPPERS_DISABLE_PIN, GPIO_PIN_SET);
+      reset_power_24v();
+    }
   }
 }
 
