@@ -354,14 +354,8 @@ void protocol_exec_rt_system()
             }
             if (sys.state != STATE_SLEEP) {
               if (sys.state != STATE_SAFETY_DOOR) {
-                if (door_is_open()) {
-                  report_feedback_message(MESSAGE_SAFETY_DOOR_AJAR);
-                } else if (base_is_open()) {
-                  report_feedback_message(MESSAGE_SAFETY_BASE_AJAR);
-                } else {
-                  // NOT EXPECT to enter this case (not 0% possibility though)
-                  report_feedback_message(MESSAGE_SAFETY_DOOR_AJAR);
-                }
+                // NOT EXPECT to enter this case
+                report_feedback_message(MESSAGE_SAFETY_DOOR_AJAR);
               }
               sys.state = STATE_SAFETY_DOOR; 
             }
@@ -386,6 +380,7 @@ void protocol_exec_rt_system()
       // Block if called at same time as the hold commands: feed hold, motion cancel, and safety door.
       // Ensures auto-cycle-start doesn't resume a hold without an explicit user-input.
       if (!(rt_exec & (EXEC_FEED_HOLD | EXEC_MOTION_CANCEL | EXEC_SAFETY_DOOR))) {
+        // =============== START OF UNREACHABLE CODE (lazervida) ===================
         // Resume door state when parking motion has retracted and door has been closed.
         if ((sys.state == STATE_SAFETY_DOOR) && !(sys.suspend & SUSPEND_SAFETY_DOOR_AJAR)) {
           if (sys.suspend & SUSPEND_RESTORE_COMPLETE) {
@@ -399,6 +394,8 @@ void protocol_exec_rt_system()
             sys.suspend |= SUSPEND_INITIATE_RESTORE;
           }
         }
+        // =============== END OF UNREACHABLE CODE ===================
+
         // Cycle start only when IDLE or when a hold is complete and ready to resume.
         if ((sys.state == STATE_IDLE) || ((sys.state & STATE_HOLD) && (sys.suspend & SUSPEND_HOLD_COMPLETE))) {
           if (sys.state == STATE_HOLD && sys.spindle_stop_ovr) {
@@ -697,11 +694,8 @@ static void protocol_exec_rt_suspend()
           
           // Allows resuming from parking/safety door. Actively checks if safety door is closed and ready to resume.
           if (sys.state == STATE_SAFETY_DOOR) {
-            if ( ! door_is_open() && ! base_is_open()) {
-              sys.suspend &= ~(SUSPEND_SAFETY_DOOR_AJAR); // Reset door ajar flag to denote ready to resume.
-            }
             //if (!(system_check_safety_door_ajar())) {
-            //  sys.suspend &= ~(SUSPEND_SAFETY_DOOR_AJAR); // Reset door ajar flag to denote ready to resume.
+              sys.suspend &= ~(SUSPEND_SAFETY_DOOR_AJAR); // Reset door ajar flag to denote ready to resume.
             //}
           }
 

@@ -476,7 +476,12 @@ void report_realtime_status()
   // Report current machine state and sub-states
   serial_write('<');
   switch (sys.state) {
-    case STATE_IDLE: printString("Idle"); break;
+    case STATE_IDLE: 
+      if (is_in_fast_raster_mode()) {
+      } else {
+        printString("Idle"); 
+      }
+      break;
     case STATE_CYCLE: printString("Run"); break;
     case STATE_HOLD:
       if (!(sys.suspend & SUSPEND_JOG_CANCEL)) {
