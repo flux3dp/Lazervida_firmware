@@ -478,6 +478,7 @@ void report_realtime_status()
   switch (sys.state) {
     case STATE_IDLE: 
       if (is_in_fast_raster_mode()) {
+        printString("Run"); 
       } else {
         printString("Idle"); 
       }
