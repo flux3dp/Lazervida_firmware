@@ -44,7 +44,16 @@
   # in order to add common defines:
   #  1) remove the trailing [] from the :common: section
   #  2) add entries to the :common: section (e.g. :test: has TEST defined)
-  :common: &common_defines []
+  :common: &common_defines
+    - USE_FULL_LL_DRIVER
+    - USE_HAL_DRIVER
+    - STM32F103xB
+    - N_AXIS=2
+    - HOMING_CYCLE_0=0
+    - REPORT_OVR_REFRESH_BUSY_COUNT=20
+    - REPORT_OVR_REFRESH_IDLE_COUNT=10
+    - REPORT_WCO_REFRESH_BUSY_COUNT=30
+    - REPORT_WCO_REFRESH_IDLE_COUNT=10
   :test:
     - *common_defines
     - TEST
@@ -99,4 +108,16 @@
   :enabled:
     - stdout_pretty_tests_report
     - module_generator
+    - gcov
+
+:flags:
+  :test:
+    :compile:
+        :*:
+            #- -Wall 
+            - -w
+            - -Wno-int-to-void-pointer-cast
+            - -Wno-conversion
+            - -fdata-sections
+            - -ffunction-sections
 ...
