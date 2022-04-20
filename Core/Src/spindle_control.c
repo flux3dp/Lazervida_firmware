@@ -46,7 +46,8 @@ void spindle_init()
     MX_TIM3_Init();
     // Start laser pwm timer with 
     HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3); // Start base timer + PWM channel
-    
+    HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); // Start base timer + PWM channel
+
     // NOTE: LASER_EN pin might be removed
     HAL_GPIO_WritePin(GPIOA, LASER_EN_Pin, GPIO_PIN_RESET);
     /*Configure GPIO pin : LASER_EN_Pin */

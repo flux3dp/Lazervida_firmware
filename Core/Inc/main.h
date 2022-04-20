@@ -110,6 +110,8 @@ extern I2C_HandleTypeDef hi2c1;
 #define DIR_Y_GPIO_Port GPIOB
 #define STEP_Y_Pin GPIO_PIN_2
 #define STEP_Y_GPIO_Port GPIOB
+#define USB_Detect_Pin GPIO_PIN_10
+#define USB_Detect_GPIO_Port GPIOB
 #define STEP_EN_INV_Pin GPIO_PIN_8
 #define STEP_EN_INV_GPIO_Port GPIOA
 #define MS1_Pin GPIO_PIN_15
@@ -118,6 +120,8 @@ extern I2C_HandleTypeDef hi2c1;
 #define DIR_X_GPIO_Port GPIOB
 #define STEP_X_Pin GPIO_PIN_4
 #define STEP_X_GPIO_Port GPIOB
+#define LED_PWM_Pin GPIO_PIN_5
+#define LED_PWM_GPIO_Port GPIOB
 #define I2C1_SCL_Pin GPIO_PIN_6
 #define I2C1_SCL_GPIO_Port GPIOB
 #define I2C1_SDA_Pin GPIO_PIN_7

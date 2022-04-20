@@ -123,6 +123,7 @@ int main(void)
   MX_DMA_Init();
   MX_TIM1_Init();
   MX_USB_DEVICE_Init();
+
   /* USER CODE BEGIN 2 */
   
   get_rcc_clock_config();
@@ -211,6 +212,7 @@ int main(void)
 
     // Print welcome message. Indicates an initialization has occured at power-up or with a reset.
     report_init_message();
+    set_led_mode(kBreath);
 
     // Start Grbl main loop. Processes program inputs and executes them.
     protocol_main_loop();
@@ -471,6 +473,10 @@ void MX_TIM3_Init(void)
   sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
@@ -649,6 +655,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : USB_Detect_Pin */
+  GPIO_InitStruct.Pin = USB_Detect_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(USB_Detect_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : STEP_EN_INV_Pin MS1_Pin */
   GPIO_InitStruct.Pin = STEP_EN_INV_Pin|MS1_Pin;

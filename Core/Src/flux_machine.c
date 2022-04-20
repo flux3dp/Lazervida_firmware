@@ -21,6 +21,15 @@ bool MSA311_INT_triggered = false;
 
 uint32_t last_motor_active = 0;
 
+#define CURRENT_LED_PWM_POWER (htim3.Instance->CCR2)
+
+typedef struct {
+  LedMode mode;
+  uint32_t last_ts;
+  uint32_t duty_cycle;
+} LedState ;
+LedState led_state;
+
 void flux_periodic_handling() {
   if (MSA311_INT_triggered) {
     printString("[DEBUG: MSA311 int]\n");
@@ -40,6 +49,8 @@ void flux_periodic_handling() {
       reset_power_24v();
     }
   }
+
+  led_handler(millis());
 }
 
 void set_stepper_MS1() {
@@ -56,6 +67,72 @@ void set_power_24v() {
 
 void reset_power_24v() {
   HAL_GPIO_WritePin(PWR_24V_GPIO_Port, PWR_24V_Pin, GPIO_PIN_RESET);
+}
+
+void set_led_mode(LedMode new_mode) {
+  switch (new_mode) {
+    case kOn:
+      led_state.duty_cycle = 1000;
+      break;
+    case kOff:
+      led_state.duty_cycle = 0;
+      break;
+    case kFlash:
+      led_state.duty_cycle = 1000;
+      break;
+    case kBreath:
+      led_state.duty_cycle = 0;
+      break;
+    case kManual:
+    default:
+      led_state.duty_cycle = 0;
+      new_mode = kManual;
+      break;
+  }
+  led_state.mode = new_mode;
+  CURRENT_LED_PWM_POWER = led_state.duty_cycle;
+  led_state.last_ts = millis();
+}
+
+void set_led_power(uint32_t val) {
+  if (led_state.mode == kManual) {
+    CURRENT_LED_PWM_POWER = val;
+  }
+}
+
+void led_handler(uint32_t new_ts) {
+  switch (led_state.mode) {
+    case kOff:
+      break;
+    case kOn:
+      break;
+    case kFlash:
+      if (new_ts - led_state.last_ts > 600) {
+        if (led_state.duty_cycle == 0) {
+          led_state.duty_cycle = 1000;
+        } else {
+          led_state.duty_cycle = 0;
+        }
+        led_state.last_ts = new_ts;
+        CURRENT_LED_PWM_POWER = led_state.duty_cycle;
+      }
+      break;
+    case kBreath:
+      if (new_ts - led_state.last_ts > 60) {
+        if (led_state.duty_cycle >= 2000) {
+          led_state.duty_cycle = 0;
+        } else {
+          led_state.duty_cycle += 40;
+        }
+        led_state.last_ts = new_ts;
+        CURRENT_LED_PWM_POWER = led_state.duty_cycle <= 1000 ? 
+                                led_state.duty_cycle : 2000 - led_state.duty_cycle;
+      }
+      break;
+    case kManual:
+    default:
+      break;
+  }
 }
 
 void start_firmware_update() {
