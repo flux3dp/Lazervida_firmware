@@ -477,8 +477,10 @@ void report_realtime_status()
   serial_write('<');
   switch (sys.state) {
     case STATE_IDLE: 
+      // =============== FLUX dedicated ==============
       if (is_in_fast_raster_mode()) {
         printString("Run"); 
+      // =============================================
       } else {
         printString("Idle"); 
       }

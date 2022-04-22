@@ -182,7 +182,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-        // Reset system variables.
+    // Reset system variables.
     uint8_t prior_state = sys.state;
     memset(&sys, 0, sizeof(system_t)); // Clear system struct variable.
     sys.state = prior_state;
@@ -212,7 +212,11 @@ int main(void)
 
     // Print welcome message. Indicates an initialization has occured at power-up or with a reset.
     report_init_message();
+
+    // =========== FLUX dedicated code ==============
+    fast_raster_mode_switch_off(); // reset fast raster context
     set_led_mode(kBreath);
+    // ==============================================
 
     // Start Grbl main loop. Processes program inputs and executes them.
     protocol_main_loop();

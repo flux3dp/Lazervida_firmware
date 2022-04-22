@@ -21,6 +21,9 @@
 #include "grbl.h"
 #include "main.h"
 
+#include "flux_machine.h"
+#include "fast_raster_print.h"
+
 
 void system_init()
 {
@@ -189,6 +192,9 @@ uint8_t system_execute_line(char *line)
           if (bit_isfalse(settings.flags,BITFLAG_HOMING_ENABLE)) {return(STATUS_SETTING_DISABLED); }
           // if (system_check_safety_door_ajar()) { return(STATUS_CHECK_DOOR); } // Block if safety door is ajar.
           sys.state = STATE_HOMING; // Set system state variable
+          // ================= FLUX dedicated code =================
+          set_led_mode(kOn);
+          // =======================================================
           if (line[2] == 0) {
             mc_homing_cycle(HOMING_CYCLE_ALL);
           #ifdef HOMING_SINGLE_AXIS_COMMANDS
@@ -206,6 +212,9 @@ uint8_t system_execute_line(char *line)
             st_go_idle(); // Set steppers to the settings idle state before returning.
             if (line[2] == 0) { system_execute_startup(line); }
           }
+          // ================= FLUX dedicated code =================
+          fast_raster_mode_switch_off(); // force exit fast raster mode after each homing
+          // =======================================================
           break;
         case 'S' : // Puts Grbl to sleep [IDLE/ALARM]
           if ((line[2] != 'L') || (line[3] != 'P') || (line[4] != 0)) { return(STATUS_INVALID_STATEMENT); }
