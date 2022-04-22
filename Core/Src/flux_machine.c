@@ -4,6 +4,7 @@
 #include "sensors.h"
 #include "stepper.h"
 #include "system.h"
+#include "fast_raster_print.h"
 
 #define APP_ADDR                (FLASH_BASE + 0x9000)
 // NOTE: The page before APP_ADDR is for firmware update state indicator
@@ -29,6 +30,8 @@ typedef struct {
   uint32_t duty_cycle;
 } LedState ;
 LedState led_state;
+
+void led_handler(uint32_t new_ts);
 
 void flux_periodic_handling() {
   if (MSA311_INT_triggered) {

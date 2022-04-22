@@ -126,6 +126,9 @@ extern I2C_HandleTypeDef hi2c1;
 #define I2C1_SCL_GPIO_Port GPIOB
 #define I2C1_SDA_Pin GPIO_PIN_7
 #define I2C1_SDA_GPIO_Port GPIOB
+#define POWER_BTN_Pin GPIO_PIN_9
+#define POWER_BTN_GPIO_Port GPIOB
+#define POWER_BTN_EXTI_IRQn EXTI9_5_IRQn
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

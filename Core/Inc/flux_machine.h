@@ -1,6 +1,7 @@
 #ifndef FLUX_MACHINE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef union {
     uint32_t value;
@@ -28,6 +29,8 @@ typedef enum {
 
 extern volatile cmd_process_locker_t cmd_process_locker;
 extern volatile cmd_process_unlocker_t cmd_process_unlocker;
+
+extern volatile bool machine_power_on;
 
 void flux_periodic_handling();
 
