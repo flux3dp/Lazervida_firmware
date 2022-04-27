@@ -117,6 +117,9 @@ int main(void)
 
   /* USER CODE BEGIN SysInit */
 
+  // TODO: Initialize POWER ON detect pin
+  // ....
+
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -133,7 +136,6 @@ int main(void)
   limit_pin_mask_init();
   stepper_disable_mask_init();
 
-  //gpio_clock_init();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
@@ -175,6 +177,8 @@ int main(void)
     if (bit_istrue(settings.flags,BITFLAG_HOMING_ENABLE)) { sys.state = STATE_ALARM; }
   #endif
 
+  bool automatic_homing_required = true;
+
   // Grbl initialization loop upon power-up or a system abort. For the latter, all processes
   // will return to this loop to be cleanly re-initialized.
   while (1)
@@ -182,7 +186,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-        // Reset system variables.
+    // Reset system variables.
     uint8_t prior_state = sys.state;
     memset(&sys, 0, sizeof(system_t)); // Clear system struct variable.
     sys.state = prior_state;
@@ -210,9 +214,27 @@ int main(void)
     plan_sync_position();
     gc_sync_position();
 
+    // =========== FLUX dedicated code ==============
+    // Only home automatically once after each power cycle
+    if (automatic_homing_required) {
+      uint8_t last_state = sys.state;
+      set_led_mode(kOn);
+      sys.state = STATE_HOMING; // Set system state variable
+      mc_homing_cycle(HOMING_CYCLE_ALL);
+      if (!sys.abort) {  // Execute startup scripts after successful homing.
+        sys.state = STATE_IDLE; // Set to IDLE when complete.
+        st_go_idle(); // Set steppers to the settings idle state before returning.
+      } else {
+        // Restore the system state
+        sys.state = last_state;
+      }
+      automatic_homing_required = false;
+    }
+    fast_raster_mode_switch_off(); // reset fast raster context
+    // ==============================================
+
     // Print welcome message. Indicates an initialization has occured at power-up or with a reset.
     report_init_message();
-    set_led_mode(kBreath);
 
     // Start Grbl main loop. Processes program inputs and executes them.
     protocol_main_loop();

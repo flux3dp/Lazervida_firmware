@@ -36,17 +36,6 @@ static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
 
 static void protocol_exec_rt_suspend();
 
-void initial_homing() {
-  if (bit_isfalse(settings.flags,BITFLAG_HOMING_ENABLE)) {return ;}
-  
-  sys.state = STATE_HOMING; // Set system state variable
-  mc_homing_cycle(HOMING_CYCLE_ALL);
-  if (!sys.abort) {  // Execute startup scripts after successful homing.
-    sys.state = STATE_IDLE; // Set to IDLE when complete.
-    st_go_idle(); // Set steppers to the settings idle state before returning.
-  }
-}
-
 /*
   GRBL PRIMARY LOOP:
 */

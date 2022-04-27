@@ -298,7 +298,7 @@ void st_go_idle()
     reset_power_24v();
   } else { 
     // Keep motor in activated state (active when the disable pin is Low) (normal)
-    HAL_GPIO_WritePin(STEP_DISABLE_GPIO_PORT, STEPPERS_DISABLE_PIN, GPIO_PIN_RESET);
+    //HAL_GPIO_WritePin(STEP_DISABLE_GPIO_PORT, STEPPERS_DISABLE_PIN, GPIO_PIN_RESET);
   }
 
 

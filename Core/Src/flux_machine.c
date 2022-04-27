@@ -34,7 +34,9 @@ void flux_periodic_handling() {
   if (MSA311_INT_triggered) {
     printString("[DEBUG: MSA311 int]\n");
     MSA311_INT_triggered = false;
-    bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+    if (sys.state == STATE_CYCLE || is_in_fast_raster_mode()) {
+      bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+    }
   }
 
   // Disable motor when idle for 5 seconds
@@ -50,7 +52,23 @@ void flux_periodic_handling() {
     }
   }
 
+  // Led status control
+  switch (sys.state) {
+    case STATE_IDLE:
+    case STATE_ALARM:
+      set_led_mode(kBreath);
+      break;
+    case STATE_CYCLE:
+      set_led_mode(kOn);
+      break;
+    case STATE_HOLD:
+      set_led_mode(kFlash);
+      break;
+    default:
+      break;
+  }
   led_handler(millis());
+
 }
 
 void set_stepper_MS1() {
@@ -70,6 +88,9 @@ void reset_power_24v() {
 }
 
 void set_led_mode(LedMode new_mode) {
+  if (led_state.mode == new_mode) {
+    return;
+  }
   switch (new_mode) {
     case kOn:
       led_state.duty_cycle = 1000;
