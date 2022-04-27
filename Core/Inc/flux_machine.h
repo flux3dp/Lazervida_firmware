@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+uint8_t host_com_port_open;
+
 typedef union {
     uint32_t value;
     struct {

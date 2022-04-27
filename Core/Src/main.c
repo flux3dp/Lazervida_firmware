@@ -30,6 +30,7 @@
 #include "peripherals.h"
 #include "flux_machine.h"
 #include "debug_serial.h"
+#include "fast_raster_print.h"
 
 #include <stdio.h>
 /* USER CODE END Includes */

@@ -76,9 +76,7 @@ void serial_write(uint8_t data) {
   
   // Actual: USB CDC
   uint8_t ret = USBD_BUSY;
-  while (ret == USBD_BUSY) {
-    ret = CDC_Transmit_FS(&data, 1);
-  }
+  ret = CDC_Transmit_FS(&data, 1);
 }
 /*
 void serial_write(uint8_t data) {

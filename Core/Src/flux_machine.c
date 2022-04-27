@@ -14,6 +14,7 @@
 
 extern system_t sys;
 
+uint8_t host_com_port_open = 0;
 
 volatile cmd_process_locker_t cmd_process_locker;
 volatile cmd_process_unlocker_t cmd_process_unlocker;
@@ -36,6 +37,7 @@ LedState led_state;
 void led_handler(uint32_t new_ts);
 
 void flux_periodic_handling() {
+
   if (MSA311_INT_triggered) {
     printString("[DEBUG: MSA311 int]\n");
     MSA311_INT_triggered = false;
