@@ -20,6 +20,8 @@ volatile cmd_process_unlocker_t cmd_process_unlocker;
 
 bool MSA311_INT_triggered = false;
 
+volatile bool machine_power_on = false;
+
 uint32_t last_motor_active = 0;
 
 #define CURRENT_LED_PWM_POWER (htim3.Instance->CCR2)
@@ -190,6 +192,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     case GPIO_PIN_1:
       if (sys.state != STATE_HOLD) {
         MSA311_INT_triggered = true;
+      }
+      break;
+    case GPIO_PIN_9: // POWER BTN
+      if (machine_power_on) {
+        // Software reset (enter power off state)
+        NVIC_SystemReset();
       }
       break;
     default:
