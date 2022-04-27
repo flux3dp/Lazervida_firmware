@@ -13,7 +13,7 @@
 #define APP_SIZE                (DEV_FLASH_SIZE - 0x9000 - FLASH_PAGE_SIZE) 
 
 extern system_t sys;
-extern PCD_HandleTypeDef hpcd_USB_FS;
+
 
 volatile cmd_process_locker_t cmd_process_locker;
 volatile cmd_process_unlocker_t cmd_process_unlocker;
@@ -180,9 +180,6 @@ void start_firmware_update() {
   }
 
   // 2. Software Reset
-  delay_ms(1000);
-  HAL_PCD_Stop(&hpcd_USB_FS);
-  delay_ms(1000);
   NVIC_SystemReset();
 }
 
