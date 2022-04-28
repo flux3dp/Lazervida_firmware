@@ -83,6 +83,9 @@ void serial_write(uint8_t data) {
       ret = USBD_FAIL;
       return;
     }
+    // A timeout is needed:
+    //   When port is open without DTR/RTS signal, 
+    //   there is no robust way to ensure the port is open/close on host
     if (millis() - ts > 500) {
       host_com_port_open = 0;
       return;
