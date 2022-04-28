@@ -30,6 +30,7 @@ uint8_t serial_rx_buffer[RX_RING_BUFFER];
 uint8_t serial_rx_buffer_head = 0;
 volatile uint8_t serial_rx_buffer_tail = 0;
 
+extern volatile uint8_t host_com_port_open;
 //uint8_t serial_tx_buffer[TX_RING_BUFFER];
 //uint8_t serial_tx_buffer_head = 0;
 //volatile uint8_t serial_tx_buffer_tail = 0;
@@ -76,7 +77,18 @@ void serial_write(uint8_t data) {
   
   // Actual: USB CDC
   uint8_t ret = USBD_BUSY;
-  ret = CDC_Transmit_FS(&data, 1);
+  uint32_t ts = millis();
+  while (ret == USBD_BUSY) {
+    if (host_com_port_open == 0) {
+      ret = USBD_FAIL;
+      return;
+    }
+    if (millis() - ts > 500) {
+      host_com_port_open = 0;
+      return;
+    }
+    ret = CDC_Transmit_FS(&data, 1);
+  }
 }
 /*
 void serial_write(uint8_t data) {

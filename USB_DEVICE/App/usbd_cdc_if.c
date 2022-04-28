@@ -252,11 +252,10 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
     break;
 
     case CDC_SET_CONTROL_LINE_STATE:
-      if(((USBD_SetupReqTypedef *)pbuf)->wValue & 0x0001 != 0) {
+      if(((USBD_SetupReqTypedef *)pbuf)->wValue & 0x0003 != 0) {
         host_com_port_open = 1;
-      } else {
-        host_com_port_open = 0;
       }
+
     break;
 
     case CDC_SEND_BREAK:
@@ -315,19 +314,12 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
   uint8_t result = USBD_OK;
   /* USER CODE BEGIN 7 */
   USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
+  if (hcdc->TxState != 0){
+    return USBD_BUSY;
+  }
   
   USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
-  while (1) {
-    result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
-    if (result == USBD_OK || result == USBD_FAIL) {
-      return result;
-    } else { // USBD_BUSY
-      // retry
-    }
-    if (host_com_port_open == 0) {
-      return USBD_FAIL;
-    }
-  }
+  result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
   /* USER CODE END 7 */
   return result;
 }

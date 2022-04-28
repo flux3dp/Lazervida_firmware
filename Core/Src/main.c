@@ -118,6 +118,8 @@ int main(void)
 
   /* USER CODE BEGIN SysInit */
   // =============== FLUX dedicated code ===============
+  debug_serial_init();
+
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   // Force USB host side to eliminate the device from the USB list
   __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -197,8 +199,6 @@ int main(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  debug_serial_init();
-
   // Initialize system upon power-up.
   serial_init();   // Setup serial baud rate and interrupts
   eeprom_init();
@@ -274,6 +274,7 @@ int main(void)
     // =========== FLUX dedicated code ==============
     // Only home automatically once after each power cycle
     if (automatic_homing_required) {
+      int idx = 0;
       printString("[MSG: auto homing]\n");
       uint8_t last_state = sys.state;
       set_led_mode(kOn);
@@ -288,6 +289,9 @@ int main(void)
         sys.abort = false;
       }
       automatic_homing_required = false;
+      for (idx = 0; idx < N_AXIS; idx++) {
+        sys_position[idx] = 0;
+      }
     }
     fast_raster_mode_switch_off(); // reset fast raster context
     // ==============================================
