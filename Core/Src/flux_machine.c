@@ -14,7 +14,7 @@
 
 extern system_t sys;
 
-uint8_t host_com_port_open = 0;
+volatile uint8_t host_com_port_open = 0;
 
 volatile cmd_process_locker_t cmd_process_locker;
 volatile cmd_process_unlocker_t cmd_process_unlocker;
