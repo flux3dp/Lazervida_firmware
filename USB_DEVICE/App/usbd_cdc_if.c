@@ -32,7 +32,7 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-extern uint8_t host_com_port_open;
+extern volatile uint8_t host_com_port_open;
 
 /* USER CODE END PV */
 
