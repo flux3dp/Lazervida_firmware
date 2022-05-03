@@ -38,21 +38,25 @@
   #define DUAL_AXIS_CHECK_TRIGGER_2   bit(2)
 #endif
 
+/**
+ * @brief Config limit pins as EXTI interrupt pins or simple input pins
+ * 
+ */
 void limits_init()
 {
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  GPIO_InitStruct.Pin = LIMIT_Y_Pin|LIMIT_X_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT; // Or GPIO_MODE_IT_FALLING?
-  #ifdef DISABLE_LIMIT_PIN_PULL_UP
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-  #else
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-  #endif
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_DeInit(LIMIT_X_GPIO_Port, LIMIT_X_Pin);
+  HAL_GPIO_DeInit(LIMIT_Y_GPIO_Port, LIMIT_Y_Pin);
 
   if (bit_istrue(settings.flags,BITFLAG_HARD_LIMIT_ENABLE)) {
-    // TODO: Enable limit pins EXTI interrupt
-    //       if GPIO is configured as EXTI
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Pin = LIMIT_Y_Pin|LIMIT_X_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING; // GPIO_MODE_INPUT
+    #ifdef DISABLE_LIMIT_PIN_PULL_UP
+      GPIO_InitStruct.Pull = GPIO_NOPULL;
+    #else
+      GPIO_InitStruct.Pull = GPIO_PULLUP;
+    #endif
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
   } else {
     limits_disable();
   }
@@ -67,10 +71,27 @@ void limits_init()
 }
 
 
-// Disables hard limits.
+/**
+ * @brief Disable hard limit interrupt
+ *        limit pins become simple input pins
+ * 
+ */
 void limits_disable()
 {
-  // TODO: Diable limit pins EXTI interrupt
+  // Diable limit pins EXTI interrupt
+  HAL_GPIO_DeInit(LIMIT_X_GPIO_Port, LIMIT_X_Pin);
+  HAL_GPIO_DeInit(LIMIT_Y_GPIO_Port, LIMIT_Y_Pin);
+
+  // Simple input
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  GPIO_InitStruct.Pin = LIMIT_Y_Pin|LIMIT_X_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  #ifdef DISABLE_LIMIT_PIN_PULL_UP
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+  #else
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+  #endif
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 }
 

@@ -193,6 +193,18 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
         MSA311_INT_triggered = true;
       }
       break;
+    case LIMIT_X_Pin:
+    case LIMIT_Y_Pin:
+      if (sys.state != STATE_ALARM) {  // Ignore if already in alarm state. 
+        if (!(sys_rt_exec_alarm)) {
+          // Check limit pin state. 
+          if (limits_get_state()) {
+            mc_reset(); // Initiate system kill.
+            system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT); // Indicate hard limit critical event
+          }
+        }
+      }
+      break;
     case GPIO_PIN_9: // POWER BTN
       if (machine_power_on) {
         // Software reset (enter power off state)

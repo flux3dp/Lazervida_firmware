@@ -246,6 +246,7 @@ void protocol_exec_rt_system()
 {
   flux_periodic_handling();
 
+  uint8_t led_alarm_flash_idx = 0;
   uint8_t rt_exec; // Temp variable to avoid calling volatile multiple times.
   rt_exec = sys_rt_exec_alarm; // Copy volatile sys_rt_exec_alarm.
   if (rt_exec) { // Enter only if any bit flag is true
@@ -258,12 +259,37 @@ void protocol_exec_rt_system()
     if ((rt_exec == EXEC_ALARM_HARD_LIMIT) || (rt_exec == EXEC_ALARM_SOFT_LIMIT)) {
       report_feedback_message(MESSAGE_CRITICAL_EVENT);
       system_clear_exec_state_flag(EXEC_RESET); // Disable any existing reset
+      // =============== FLUX's dedicated handling ==============
+      set_led_mode(kManual);
+      // =============== End of FLUX's dedicated handling ==============
       do {
         // Block everything, except reset and status reports, until user issues reset or power
         // cycles. Hard limits typically occur while unattended or not paying attention. Gives
         // the user and a GUI time to do what is needed before resetting, like killing the
         // incoming stream. The same could be said about soft limits. While the position is not
         // lost, continued streaming could cause a serious crash if by chance it gets executed.
+        
+        // =============== FLUX's dedicated handling ==============
+        // Show LED alarm indicator (request user to power cycle the machine)
+        if (led_alarm_flash_idx == 0) {
+          set_led_power(1000);
+        } else if (led_alarm_flash_idx == 1) {
+          set_led_power(0);
+        } else if (led_alarm_flash_idx == 2) {
+          set_led_power(1000);
+        } else if (led_alarm_flash_idx == 3) {
+          set_led_power(0);
+        } else if (led_alarm_flash_idx == 4) {
+          set_led_power(1000);
+        } else if (led_alarm_flash_idx <= 8) {
+          set_led_power(0);
+        }
+        HAL_Delay(500);
+        led_alarm_flash_idx++;
+        if (led_alarm_flash_idx > 8) {
+          led_alarm_flash_idx = 0;
+        }
+        // =============== End of FLUX's dedicated handling ==============
       } while (bit_isfalse(sys_rt_exec_state,EXEC_RESET));
     }
     system_clear_exec_alarm(); // Clear alarm
