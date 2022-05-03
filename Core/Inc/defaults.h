@@ -27,7 +27,7 @@
 
 #ifndef defaults_h
 
-#ifdef FLUX_LASER_VIDA
+#ifdef FLUX_LAZERVIDA
   #define DEFAULT_X_STEPS_PER_MM 40
   #define DEFAULT_Y_STEPS_PER_MM 100
   #define DEFAULT_Z_STEPS_PER_MM 250.0
@@ -52,7 +52,7 @@
   #define DEFAULT_REPORT_INCHES 0 // false
   #define DEFAULT_INVERT_ST_ENABLE 0 // false
   #define DEFAULT_INVERT_LIMIT_PINS 0 // true
-  #define DEFAULT_SOFT_LIMIT_ENABLE 0 // false
+  #define DEFAULT_SOFT_LIMIT_ENABLE 1 // true
   #define DEFAULT_HARD_LIMIT_ENABLE 1  // true
   #define DEFAULT_INVERT_PROBE_PIN 0 // false
   #define DEFAULT_LASER_MODE 1 // true
