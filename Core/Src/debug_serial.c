@@ -3,9 +3,11 @@
 #include "grbl.h"
 #include "lwrb.h"
 
+#if DEBUG_SERIAL_ON
 #define DEBUG_RX_RING_BUFFER (128+1)
 //#define TX_RING_BUFFER (TX_BUFFER_SIZE+1)
 uint8_t debug_serial_rx_buffer[DEBUG_RX_RING_BUFFER];
+#endif
 uint8_t debug_serial_rx_buffer_head = 0;
 volatile uint8_t debug_serial_rx_buffer_tail = 0;
 
@@ -15,8 +17,10 @@ volatile uint8_t debug_serial_rx_buffer_tail = 0;
 
 
 void debug_serial_init() {
-  //MX_USART1_UART_Init();
-  //NVIC_DisableIRQ(USART1_IRQn);
+  #if DEBUG_SERIAL_ON
+    MX_USART1_UART_Init();
+    NVIC_DisableIRQ(USART1_IRQn);
+  #endif
   /* === Tx send without interrupt (blocking send) === */
 
   /* ====================== Rx interrupt setup ====================== */
@@ -25,6 +29,7 @@ void debug_serial_init() {
 }
 
 void debug_serial_rx_handler() {
+#if DEBUG_SERIAL_ON
   uint8_t data;
   uint16_t next_head;
 
@@ -80,12 +85,13 @@ void debug_serial_rx_handler() {
         }
       }
   }
-
+#endif
 }
 
 // Fetches the first byte in the serial read buffer. Called by main program.
 uint8_t debug_serial_read()
 {
+  #if DEBUG_SERIAL_ON
   uint16_t tail = debug_serial_rx_buffer_tail; // Temporary serial_rx_buffer_tail (to optimize for volatile)
   if (debug_serial_rx_buffer_head == tail) {
     return SERIAL_NO_DATA;
@@ -98,13 +104,18 @@ uint8_t debug_serial_read()
 
     return data;
   }
+  #else
+  return 0;
+  #endif
 }
 
 void debug_serial_write_data(uint8_t data) {
+  #if DEBUG_SERIAL_ON
   LL_USART_TransmitData8(USART1, data);
   // Blocking send
 	while (!LL_USART_IsActiveFlag_TXE(USART1));
     return;
+  #endif
 }
 
 // NOTE: To print debug message -> call printf(...)
