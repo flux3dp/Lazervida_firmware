@@ -131,10 +131,12 @@ typedef struct {
 
   int32_t _sensorID;
   I2C_HandleTypeDef *p_hi2c;
+  bool working;
 } Adafruit_MSA311;
 
 void Adafruit_MSA311_init(void);
 bool Adafruit_MSA311_begin(I2C_HandleTypeDef *p_hi2c);
+bool MSA311_working();
 
 uint8_t MSA311_get_partid();
 
@@ -153,6 +155,7 @@ void Adafruit_MSA311_read();
 float MSA311_get_x_data(void);
 float MSA311_get_y_data(void);
 float MSA311_get_z_data(void);
+float MSA311_get_tilt_y();
 
 void Adafruit_MSA311_enableInterrupts(bool singletap, bool doubletap,
                       bool activeX, bool activeY,
@@ -174,8 +177,9 @@ uint8_t Adafruit_MSA311_getDataInterruptStatus(void);
 void Adafruit_MSA311_setClick(bool tap_quiet, bool tap_shock,
                 msa311_tapduration_t tapduration, uint8_t tapthresh);
 
-
+/*
 void MSA311_print_config(void);
 void MSA311_print_status();
+*/
 
 #endif

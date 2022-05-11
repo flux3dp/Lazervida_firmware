@@ -23,6 +23,7 @@
  */
 
 #include "Adafruit_MSA311.h"
+#include <math.h>
 
 static Adafruit_MSA311 msa311;
 
@@ -46,6 +47,7 @@ bool Adafruit_MSA311_begin(I2C_HandleTypeDef *p_hi2c) {
   // make sure we're talking to the right chip
   if (MSA311_get_partid() != 0x13) {
     // No MSA301 detected ... return false
+    msa311.working = false;
     return false;
   }
 
@@ -78,8 +80,13 @@ bool Adafruit_MSA311_begin(I2C_HandleTypeDef *p_hi2c) {
     Serial.println(readRegister8(i), HEX);
   }
   */
+  msa311.working = true;
 
   return true;
+}
+
+bool MSA311_working() {
+  return msa311.working;
 }
 
 uint8_t MSA311_get_partid() {
@@ -301,16 +308,42 @@ void Adafruit_MSA311_read(void) {
   msa311.z_g = (float)msa311.z / scale;
 }
 
+/**
+ * @brief 
+ * 
+ * @return float acc_x value (in unit of g)
+ */
 float MSA311_get_x_data(void) {
   return msa311.x_g;
 }
 
+/**
+ * @brief 
+ * 
+ * @return float acc_y value (in unit of g)
+ */
 float MSA311_get_y_data(void) {
   return msa311.y_g;
 }
 
+/**
+ * @brief 
+ * 
+ * @return float acc_z value (in unit of g)
+ */
 float MSA311_get_z_data(void) {
   return msa311.z_g;
+}
+
+/**
+ * @brief Calculate tilt angle from y-axis
+ * 
+ * @return float 
+ */
+float MSA311_get_tilt_y() {
+  return acos(MSA311_get_y_data()/
+            sqrt(MSA311_get_x_data()*MSA311_get_x_data() + MSA311_get_y_data()*MSA311_get_y_data() + MSA311_get_z_data()*MSA311_get_z_data())
+            );
 }
 
 
@@ -525,6 +558,7 @@ uint8_t Adafruit_MSA311_getDataInterruptStatus(void) {
   return data_int_status_buf[0];
 }
 
+/*
 void MSA311_print_config(void) {
   printString("[MSA311 config:\n");
   printString("Data rate:");
@@ -564,3 +598,4 @@ void MSA311_print_status() {
   print_uint8_base2_ndigit(Adafruit_MSA311_getDataInterruptStatus(), 8);
   printString("\n]\n");
 }
+*/

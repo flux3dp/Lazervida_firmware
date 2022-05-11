@@ -3,6 +3,7 @@
 #include "print.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include "flux_machine.h"
 
 /**
  * @brief Initialize Power 24V (and fan on laser head)
@@ -29,6 +30,9 @@ void peripherals_init() {
   MX_I2C1_Init();
   if (!Adafruit_MSA311_begin(&hi2c1)) {
     printString("[ERROR: MSA311 not responding]\n");
+  } else {
+    Adafruit_MSA311_read();
+    reference_tilt = MSA311_get_tilt_y();
   }
   enable_interrupt_for_collision();
 

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 volatile uint8_t host_com_port_open;
+float reference_tilt;
 
 typedef union {
     uint32_t value;

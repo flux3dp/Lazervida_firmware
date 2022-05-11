@@ -5,6 +5,8 @@
 #include "stepper.h"
 #include "system.h"
 #include "fast_raster_print.h"
+#include "Adafruit_MSA311.h"
+#include <math.h>
 
 #define APP_ADDR                (FLASH_BASE + 0x9000)
 // NOTE: The page before APP_ADDR is for firmware update state indicator
@@ -20,6 +22,8 @@ volatile cmd_process_locker_t cmd_process_locker;
 volatile cmd_process_unlocker_t cmd_process_unlocker;
 
 bool MSA311_INT_triggered = false;
+uint32_t MSA311_polling_ts = 0;
+float reference_tilt = 0.0; // Should be initialized when power up
 
 volatile bool machine_power_on = false;
 
@@ -38,8 +42,26 @@ void led_handler(uint32_t new_ts);
 
 void flux_periodic_handling() {
 
+  // Detect change of orientation
+  if (millis() - MSA311_polling_ts > 300) {
+    if (MSA311_working()) {
+      Adafruit_MSA311_read();
+      // NOTE: We only care about the change in y-axis
+      if (sys.state == STATE_CYCLE || is_in_fast_raster_mode()) {
+        float tilt = MSA311_get_tilt_y();
+        // About 15 degree = 3.14 * 10 / 180 ~ 0.17 rad
+        if (tilt - reference_tilt > 0.17 || reference_tilt - tilt > 0.17) {
+          bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+          printString("[DEBUG: MSA311 tilt]\n");
+        }
+      }
+    }
+    MSA311_polling_ts = millis();
+  }
+
+  // Detect sudden active motion (shake or vibrate)
   if (MSA311_INT_triggered) {
-    printString("[DEBUG: MSA311 int]\n");
+    printString("[DEBUG: MSA311 act]\n");
     MSA311_INT_triggered = false;
     if (sys.state == STATE_CYCLE || is_in_fast_raster_mode()) {
       bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);

@@ -26,6 +26,7 @@
 #include "flux_machine.h"
 #include "sensors.h"
 #include "fast_raster_print.h"
+#include "Adafruit_MSA311.h"
 
 // Define line flags. Includes comment type tracking and line overflow detection.
 #define LINE_FLAG_OVERFLOW bit(0)
@@ -427,6 +428,10 @@ void protocol_exec_rt_system()
               sys.suspend = SUSPEND_DISABLE; // Break suspend state.
               sys.state = STATE_IDLE;
             }
+            // =================== FLUX's dedicated handling =================
+            Adafruit_MSA311_read();
+            reference_tilt = MSA311_get_tilt_y();
+            // =================== End of FLUX's dedicated handling =================
           }
         }
       }
