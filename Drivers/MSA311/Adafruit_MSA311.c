@@ -61,8 +61,8 @@ bool Adafruit_MSA311_begin(I2C_HandleTypeDef *p_hi2c) {
   Adafruit_MSA311_setBandwidth(MSA311_BANDWIDTH_250_HZ);
   Adafruit_MSA311_setRange(MSA311_RANGE_2_G);
 
-  MSA311_setActiveInterruptThresh(200);
-  MSA311_setActiveInterruptDur(MSA311_ACTIVEDUR_4_MS);
+  MSA311_setActiveInterruptThresh(140);
+  MSA311_setActiveInterruptDur(MSA311_ACTIVEDUR_3_MS);
 
   // Enable Active(sudden move) and freefall interrupts
   Adafruit_MSA311_enableInterrupts(false, false, true, true, true, false, true, false);
