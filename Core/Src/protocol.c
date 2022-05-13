@@ -429,8 +429,8 @@ void protocol_exec_rt_system()
               sys.state = STATE_IDLE;
             }
             // =================== FLUX's dedicated handling =================
-            Adafruit_MSA311_read();
-            reference_tilt = MSA311_get_tilt_y();
+            //Adafruit_MSA311_read();
+            //reference_tilt = MSA311_get_tilt_y();
             // =================== End of FLUX's dedicated handling =================
           }
         }

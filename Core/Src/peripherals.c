@@ -31,8 +31,9 @@ void peripherals_init() {
   if (!Adafruit_MSA311_begin(&hi2c1)) {
     printString("[ERROR: MSA311 not responding]\n");
   } else {
-    Adafruit_MSA311_read();
-    reference_tilt = MSA311_get_tilt_y();
+    //_delay_ms(300);
+    //Adafruit_MSA311_read();
+    //reference_tilt = MSA311_get_tilt_y();
   }
   enable_interrupt_for_collision();
 
