@@ -292,9 +292,7 @@ void spindle_stop()
       sys.spindle_speed = 0.0;
     #endif
     spindle_stop();
-    reset_power_24v();
   } else {
-    set_power_24v();
     #if !defined(USE_SPINDLE_DIR_AS_ENABLE_PIN) && !defined(ENABLE_DUAL_AXIS)
       if (state == SPINDLE_ENABLE_CW) {
         //SPINDLE_DIRECTION_PORT &= ~(1<<SPINDLE_DIRECTION_BIT);
@@ -338,6 +336,11 @@ void spindle_stop()
   {
     if (sys.state == STATE_CHECK_MODE) { return; }
     protocol_buffer_synchronize(); // Empty planner buffer to ensure spindle is set when programmed.
+    if (state == SPINDLE_DISABLE) {
+      reset_power_24v();
+    } else {
+      set_power_24v();
+    }
     spindle_set_state(state,rpm);
   }
 #else

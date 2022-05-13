@@ -518,8 +518,16 @@ void protocol_exec_rt_system()
     if (last_s_override != sys.spindle_speed_ovr) {
       sys.spindle_speed_ovr = last_s_override;
       // NOTE: Spindle speed overrides during HOLD state are taken care of by suspend function.
-      if (sys.state == STATE_IDLE) { spindle_set_state(gc_state.modal.spindle, gc_state.spindle_speed); }
-			else { bit_true(sys.step_control, STEP_CONTROL_UPDATE_SPINDLE_PWM); }
+      if (sys.state == STATE_IDLE) { 
+        if (gc_state.modal.spindle == SPINDLE_DISABLE) {
+          reset_power_24v();
+        } else {
+          set_power_24v();
+        }
+        spindle_set_state(gc_state.modal.spindle, gc_state.spindle_speed); 
+      } else { 
+        bit_true(sys.step_control, STEP_CONTROL_UPDATE_SPINDLE_PWM); 
+      }
       sys.report_ovr_counter = 0; // Set to report change immediately
     }
 

@@ -266,6 +266,8 @@ int main(void)
     probe_init();
     plan_reset(); // Clear block buffer and planner variables
     st_reset(); // Clear stepper subsystem variables.
+    
+    reset_power_24v();
 
     // Sync cleared gcode and planner positions to current system position.
     plan_sync_position();
