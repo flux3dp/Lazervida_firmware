@@ -155,7 +155,7 @@ int main(void)
     } else if (stage == 1) { // need a rising edge after a time period
       if (HAL_GPIO_ReadPin(POWER_BTN_GPIO_Port, POWER_BTN_Pin) == GPIO_PIN_SET) {
         // check whether rise too early -> back to stage 0
-        if (millis() - ts < 300) {
+        if (millis() - ts < 80) {
           stage = 0;
         } else {
           stage = 2;
@@ -165,7 +165,7 @@ int main(void)
         // do nothing
       }
     } else if (stage == 2) {
-      if (millis() - ts > 300) { // wait for 300ms (avoid bouncing) then exit
+      if (millis() - ts > 80) { // wait for 80ms (avoid bouncing) then exit
         break;
       }
     }
