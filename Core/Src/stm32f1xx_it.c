@@ -327,7 +327,9 @@ void USART1_IRQHandler(void)
 
   // RX handle single byte at a time
   if (LL_USART_IsEnabledIT_RXNE(USART1) && LL_USART_IsActiveFlag_RXNE(USART1)) {
+    #if DEBUG_SERIAL_ON
     debug_serial_rx_handler();
+    #endif
     LL_USART_ClearFlag_RXNE(USART1);
   }
   /* USER CODE END USART1_IRQn 0 */

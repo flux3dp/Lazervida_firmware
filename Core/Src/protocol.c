@@ -37,6 +37,11 @@ static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
 
 static void protocol_exec_rt_suspend();
 
+#if DEBUG_USB_CDC_CONNECT
+uint8_t ctrl_line_state_change = 0;
+uint16_t ctrl_line_state = 0;
+#endif
+
 /*
   GRBL PRIMARY LOOP:
 */

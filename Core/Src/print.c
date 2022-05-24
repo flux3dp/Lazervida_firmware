@@ -20,6 +20,7 @@
 */
 
 #include "grbl.h"
+#include "debug_serial.h"
 
 
 void printString(const char *s)
@@ -27,6 +28,32 @@ void printString(const char *s)
   while (*s)
     serial_write(*s++);
 }
+
+#if DEBUG_SERIAL_ON
+void debugString(const char *s) {
+    while (*s)
+      debug_serial_write_data(*s++);
+}
+
+void debug_uint32_base10(uint32_t n)
+{
+  if (n == 0) {
+    debug_serial_write_data('0');
+    return;
+  }
+
+  unsigned char buf[10];
+  uint8_t i = 0;
+
+  while (n > 0) {
+    buf[i++] = n % 10;
+    n /= 10;
+  }
+
+  for (; i > 0; i--)
+    debug_serial_write_data('0' + buf[i-1]);
+}
+#endif
 
 
 // void printIntegerInBase(unsigned long n, unsigned long base)

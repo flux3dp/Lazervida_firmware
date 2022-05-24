@@ -28,6 +28,8 @@
 
 #include "grbl.h"
 
+#include "fast_raster_print.h"
+
 
 // Internal report utilities to reduce flash with repetitive tasks turned into functions.
 void report_util_setting_prefix(uint8_t n) { serial_write('$'); print_uint8_base10(n); serial_write('='); }
@@ -171,7 +173,9 @@ void report_feedback_message(uint8_t message_code)
 // Welcome message
 void report_init_message()
 {
-  printString("\r\nGrbl " GRBL_VERSION " ['$' for help]\r\n");
+  printString("\r\nFLUX Lazervida:" LAZERVIDA_FW_VERSION " Ready!\r\n");
+  printString("Grbl " GRBL_VERSION " ['$' for help]\r\n");
+  //printString("\r\nGrbl " GRBL_VERSION " ['$' for help]\r\n");
 }
 
 // Grbl help message

@@ -118,7 +118,10 @@ int main(void)
 
   /* USER CODE BEGIN SysInit */
   // =============== FLUX dedicated code ===============
+  #if DEBUG_SERIAL_ON
   debug_serial_init();
+  debugString("Fw: 0.0.1\n");
+  #endif
 
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   // Force USB host side to eliminate the device from the USB list
@@ -294,6 +297,7 @@ int main(void)
       for (idx = 0; idx < N_AXIS; idx++) {
         sys_position[idx] = 0;
       }
+      sys.state = STATE_ALARM;
     }
     fast_raster_mode_switch_off(); // reset fast raster context
     // ==============================================

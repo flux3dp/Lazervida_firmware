@@ -34,6 +34,11 @@
 /* Private variables ---------------------------------------------------------*/
 extern volatile uint8_t host_com_port_open;
 
+#if DEBUG_USB_CDC_CONNECT
+extern uint8_t ctrl_line_state_change;
+extern uint16_t ctrl_line_state;
+#endif
+
 /* USER CODE END PV */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -252,10 +257,16 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
     break;
 
     case CDC_SET_CONTROL_LINE_STATE:
-      if(((USBD_SetupReqTypedef *)pbuf)->wValue & 0x0003 != 0) {
+      //if(((USBD_SetupReqTypedef *)pbuf)->wValue & 0x0003 != 0) { // this condition is for macOS only
+        if (host_com_port_open == 0) {
+          mc_reset();
+        }
         host_com_port_open = 1;
-      }
-
+      //}
+      #if DEBUG_USB_CDC_CONNECT
+      ctrl_line_state_change = 1;
+      ctrl_line_state = ((USBD_SetupReqTypedef *)pbuf)->wValue;
+      #endif
     break;
 
     case CDC_SEND_BREAK:

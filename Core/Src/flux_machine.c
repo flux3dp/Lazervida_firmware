@@ -31,6 +31,10 @@ uint32_t last_motor_active = 0;
 
 #define CURRENT_LED_PWM_POWER (htim3.Instance->CCR2)
 
+#if DEBUG_USB_CDC_CONNECT
+extern uint8_t ctrl_line_state_change;
+extern uint16_t ctrl_line_state;
+#endif
 typedef struct {
   LedMode mode;
   uint32_t last_ts;
@@ -41,7 +45,14 @@ LedState led_state;
 void led_handler(uint32_t new_ts);
 
 void flux_periodic_handling() {
-
+  #if DEBUG_USB_CDC_CONNECT
+  if (ctrl_line_state_change == 1) {
+    debugString("ctrl_line_state:");
+    debug_uint32_base10(ctrl_line_state);
+    debugString("\n");
+    ctrl_line_state_change = 0;
+  }
+  #endif
   // Detect change of orientation
   /*
   if (millis() - MSA311_polling_ts > 400) {

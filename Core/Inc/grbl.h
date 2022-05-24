@@ -25,6 +25,8 @@
 #define GRBL_VERSION "1.1h"
 #define GRBL_VERSION_BUILD "20190830"
 
+#define LAZERVIDA_FW_VERSION "0.0.1"
+
 // Define standard libraries used by Grbl.
 #include <math.h>
 #include <inttypes.h>

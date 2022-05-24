@@ -48,4 +48,9 @@ void printFloat_RateValue(float n);
 // Debug tool to print free memory in bytes at the called point. Not used otherwise.
 void printFreeMemory();
 
+#if DEBUG_SERIAL_ON
+void debugString(const char *s);
+void debug_uint32_base10(uint32_t n);
+#endif
+
 #endif
