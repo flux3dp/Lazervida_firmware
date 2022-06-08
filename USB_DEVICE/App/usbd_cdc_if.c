@@ -259,7 +259,7 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
     case CDC_SET_CONTROL_LINE_STATE:
       //if(((USBD_SetupReqTypedef *)pbuf)->wValue & 0x0003 != 0) { // this condition is for macOS only
         if (host_com_port_open == 0) {
-          mc_reset();
+          //mc_reset();
         }
         host_com_port_open = 1;
       //}
