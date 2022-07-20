@@ -66,7 +66,12 @@ const settings_t defaults = {\
     #if N_AXIS > 2 && defined(Z_AXIS)
     .max_travel[Z_AXIS] = (-DEFAULT_Z_MAX_TRAVEL)
     #endif
-    };
+
+    // ======= FLUX's dedicated =======
+    // Added since v11
+    .disable_tilt_detect = false,
+
+};
 
 
 // Method to store startup lines into EEPROM
@@ -104,7 +109,7 @@ void settings_write_coord_data(uint8_t coord_select, float *coord_data)
 // NOTE: This function can only be called in IDLE state.
 void write_global_settings()
 {
-  eeprom_put_char(0, SETTINGS_VERSION);
+  eeprom_put_char(0, SETTINGS_VERSION_LATEST);
   memcpy_to_eeprom_with_checksum(EEPROM_ADDR_GLOBAL_GRBL_SETTINGS, (char*)&settings, sizeof(settings_t));
 }
 
@@ -202,7 +207,14 @@ uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data)
 uint8_t read_global_settings() {
   // Check version-byte of eeprom
   uint8_t version = eeprom_get_char(0);
-  if (version == SETTINGS_VERSION) {
+  if (version == SETTINGS_VERSION_10) {
+    // Read settings-record and check checksum
+    if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL_GRBL_SETTINGS, sizeof(settings_v10_t)))) {
+      return(false);
+    }
+    settings.disable_tilt_detect = false;
+    write_global_settings();
+  } else if (version == SETTINGS_VERSION_LATEST) {
     // Read settings-record and check checksum
     if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL_GRBL_SETTINGS, sizeof(settings_t)))) {
       return(false);
@@ -318,6 +330,9 @@ uint8_t settings_store_global_setting(uint8_t parameter, float value) {
         #else
           return(STATUS_SETTING_DISABLED_LASER);
         #endif
+        break;
+      case 33:
+        settings.disable_tilt_detect = value ? true : false;
         break;
       default:
         return(STATUS_INVALID_STATEMENT);

@@ -54,25 +54,27 @@ void flux_periodic_handling() {
   }
   #endif
   // Detect change of orientation
-  if (millis() - MSA311_polling_ts > 400) {
-    if (MSA311_working()) {
-      Adafruit_MSA311_read();
-      // NOTE: We only care about the change in y-axis
-      if (sys.state == STATE_CYCLE) {
-        float tilt = MSA311_get_tilt_y();
-        // About 15 degree = 3.14 * 10 / 180 ~ 0.17 rad
-        if (tilt - reference_tilt > 0.55 || reference_tilt - tilt > 0.55) {
-          bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
-          printString("[DEBUG: ");
-          printFloat(reference_tilt, 3);
-          printString(",");
-          printFloat(tilt, 3);
-          printString("]\n");
-          printString("[FLUX: tilt]\n");
+  if (settings.disable_tilt_detect != true) {
+    if (millis() - MSA311_polling_ts > 400) {
+      if (MSA311_working()) {
+        Adafruit_MSA311_read();
+        // NOTE: We only care about the change in y-axis
+        if (sys.state == STATE_CYCLE) {
+          float tilt = MSA311_get_tilt_y();
+          // About 15 degree = 3.14 * 10 / 180 ~ 0.17 rad
+          if (tilt - reference_tilt > 0.55 || reference_tilt - tilt > 0.55) {
+            bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+            printString("[DEBUG: ");
+            printFloat(reference_tilt, 3);
+            printString(",");
+            printFloat(tilt, 3);
+            printString("]\n");
+            printString("[FLUX: tilt]\n");
+          }
         }
       }
+      MSA311_polling_ts = millis();
     }
-    MSA311_polling_ts = millis();
   }
 
   // Detect sudden active motion (shake or vibrate)
