@@ -23,7 +23,7 @@ volatile cmd_process_unlocker_t cmd_process_unlocker;
 
 bool MSA311_INT_triggered = false;
 uint32_t MSA311_polling_ts = 0;
-float reference_tilt = 3.07; // Should be initialized when power up
+float reference_tilt = 3.07; // in unit of rad. Should be initialized when power up
 
 volatile bool machine_power_on = false;
 
@@ -54,7 +54,6 @@ void flux_periodic_handling() {
   }
   #endif
   // Detect change of orientation
-  /*
   if (millis() - MSA311_polling_ts > 400) {
     if (MSA311_working()) {
       Adafruit_MSA311_read();
@@ -62,20 +61,19 @@ void flux_periodic_handling() {
       if (sys.state == STATE_CYCLE) {
         float tilt = MSA311_get_tilt_y();
         // About 15 degree = 3.14 * 10 / 180 ~ 0.17 rad
-        if (tilt - reference_tilt > 0.35 || reference_tilt - tilt > 0.35) {
+        if (tilt - reference_tilt > 0.55 || reference_tilt - tilt > 0.55) {
           bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
           printString("[DEBUG: ");
           printFloat(reference_tilt, 3);
           printString(",");
           printFloat(tilt, 3);
           printString("]\n");
-          printString("[FLUX: MSA311 tilt]\n");
+          printString("[FLUX: tilt]\n");
         }
       }
     }
     MSA311_polling_ts = millis();
   }
-  */
 
   // Detect sudden active motion (shake or vibrate)
   if (MSA311_INT_triggered) {
