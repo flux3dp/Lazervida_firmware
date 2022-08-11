@@ -62,7 +62,7 @@ void flux_periodic_handling() {
         if (sys.state == STATE_CYCLE) {
           float tilt = MSA311_get_tilt_y();
           // About 15 degree = 3.14 * 10 / 180 ~ 0.17 rad
-          if (tilt - reference_tilt > 0.55 || reference_tilt - tilt > 0.55) {
+          if (tilt - reference_tilt > 0.85 || reference_tilt - tilt > 0.85) {
             bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
             printString("[DEBUG: ");
             printFloat(reference_tilt, 3);
@@ -95,6 +95,7 @@ void flux_periodic_handling() {
     }
     if (millis() - last_motor_active > 5000) {
       HAL_GPIO_WritePin(STEP_DISABLE_GPIO_PORT, STEPPERS_DISABLE_PIN, GPIO_PIN_SET);
+      // disable both motor and laser
       reset_power_24v();
     }
   }
@@ -126,10 +127,18 @@ void reset_stepper_MS1() {
   HAL_GPIO_WritePin(MS1_GPIO_Port, MS1_Pin, GPIO_PIN_RESET);
 }
 
+/**
+ * @brief Power for both motor and laser
+ * 
+ */
 void set_power_24v() {
   HAL_GPIO_WritePin(PWR_24V_GPIO_Port, PWR_24V_Pin, GPIO_PIN_SET);
 }
 
+/**
+ * @brief Power for both motor and laser
+ * 
+ */
 void reset_power_24v() {
   HAL_GPIO_WritePin(PWR_24V_GPIO_Port, PWR_24V_Pin, GPIO_PIN_RESET);
 }

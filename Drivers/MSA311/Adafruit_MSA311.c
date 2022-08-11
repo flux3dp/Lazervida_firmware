@@ -476,7 +476,7 @@ uint8_t MSA311_getActiveInterruptThresh() {
 /**************************************************************************/
 /*!
     @brief  Sets the threshold value for active interrupt
-    @param threshold to be set 
+    @param threshold to be set: smaller -> more sensitive
                     3.91mg/LSB for 2g range
                     7.81mg/LSB for 4g range
                     15.625mg/LSB for 8g range
@@ -510,7 +510,7 @@ msa311_activeduration_t MSA311_getActiveInterruptDur() {
 /**************************************************************************/
 /*!
     @brief  Sets the consecutive duration value for active interrupt
-    @param duration_ms 
+    @param duration_ms Smaller -> more sensitive
 */
 /**************************************************************************/
 
