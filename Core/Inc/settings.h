@@ -116,10 +116,10 @@ typedef struct {
 } settings_v10_t;
 typedef struct {
   // Axis settings
-  float steps_per_mm[N_AXIS]; // $100 ~ 100+1*N_AXIS
-  float max_rate[N_AXIS];     // $100+1*N_AXIS ~ 100+2*N_AXIS
-  float acceleration[N_AXIS]; // $100+2*N_AXIS ~ 100+3*N_AXIS
-  float max_travel[N_AXIS];   // $100+3*N_AXIS ~ 100+4*N_AXIS
+  float steps_per_mm[N_AXIS]; // $100    ~ 100    + N_AXIS
+  float max_rate[N_AXIS];     // $100+10 ~ 100+10 + N_AXIS
+  float acceleration[N_AXIS]; // $100+20 ~ 100+20 + N_AXIS
+  float max_travel[N_AXIS];   // $100+30 ~ 100+30 + N_AXIS
 
   // Remaining Grbl settings
   uint8_t pulse_microseconds; // $0
@@ -149,6 +149,16 @@ typedef struct {
 } settings_t;
 extern settings_t settings;
 
+#if N_AXIS <= Z_AXIS 
+typedef struct {
+  float steps_per_mm; // $102
+  float max_rate;     // $112
+  float acceleration; // $122
+  float max_travel;   // $132
+} fake_z_axis_info_t;
+extern fake_z_axis_info_t fake_z_axis_info;
+#endif
+
 // Initialize the configuration subsystem (load settings from EEPROM)
 void settings_init();
 
@@ -156,7 +166,7 @@ void settings_init();
 void settings_restore(uint8_t restore_flag);
 
 // A helper method to set new settings from command line
-uint8_t settings_store_global_setting(uint8_t parameter, float value);
+uint8_t settings_store_global_setting(uint16_t parameter, float value);
 
 // Stores the protocol line variable as a startup line in EEPROM
 void settings_store_startup_line(uint8_t n, char *line);

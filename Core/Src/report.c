@@ -32,7 +32,7 @@
 
 
 // Internal report utilities to reduce flash with repetitive tasks turned into functions.
-void report_util_setting_prefix(uint8_t n) { serial_write('$'); print_uint8_base10(n); serial_write('='); }
+void report_util_setting_prefix(uint16_t n) { serial_write('$'); print_uint32_base10(n); serial_write('='); }
 static void report_util_line_feed() { printString("\r\n"); }
 static void report_util_feedback_line_feed() { serial_write(']'); report_util_line_feed(); }
 static void report_util_gcode_modes_G() { printString(" G"); }
@@ -44,6 +44,11 @@ static void report_util_axis_values(float *axis_value) {
     printFloat_CoordValue(axis_value[idx]);
     if (idx < (N_AXIS-1)) { serial_write(','); }
   }
+  #if N_AXIS <= Z_AXIS
+    // Fake Z-axis
+    serial_write(',');
+    printFloat_CoordValue(0.0);
+  #endif
 }
 
 /*
@@ -93,12 +98,12 @@ static void report_util_setting_string(uint8_t n) {
 }
 */
 
-static void report_util_uint8_setting(uint8_t n, int val) { 
+static void report_util_uint8_setting(uint16_t n, int val) { 
   report_util_setting_prefix(n); 
   print_uint8_base10(val); 
   report_util_line_feed(); // report_util_setting_string(n); 
 }
-static void report_util_float_setting(uint8_t n, float val, uint8_t n_decimal) { 
+static void report_util_float_setting(uint16_t n, float val, uint8_t n_decimal) { 
   report_util_setting_prefix(n); 
   printFloat(val,n_decimal);
   report_util_line_feed(); // report_util_setting_string(n);
@@ -214,7 +219,6 @@ void report_grbl_settings() {
   #else
     report_util_uint8_setting(32,0);
   #endif
-  report_util_uint8_setting(33, settings.disable_tilt_detect);
   // Print axis settings
   uint8_t idx, set_idx;
   uint8_t val = AXIS_SETTINGS_START_VAL;
@@ -227,8 +231,19 @@ void report_grbl_settings() {
         case 3: report_util_float_setting(val+idx,-settings.max_travel[idx],N_DECIMAL_SETTINGVALUE); break;
       }
     }
+    // NOTE: Fake Z-axis settings
+    switch (set_idx) {
+      case 0: report_util_float_setting(val+Z_AXIS, fake_z_axis_info.steps_per_mm, N_DECIMAL_SETTINGVALUE); break;
+      case 1: report_util_float_setting(val+Z_AXIS, fake_z_axis_info.max_rate, N_DECIMAL_SETTINGVALUE); break;
+      case 2: report_util_float_setting(val+Z_AXIS, fake_z_axis_info.acceleration/(60*60), N_DECIMAL_SETTINGVALUE); break;
+      case 3: report_util_float_setting(val+Z_AXIS, -fake_z_axis_info.max_travel, N_DECIMAL_SETTINGVALUE); break;
+    }
+
     val += AXIS_SETTINGS_INCREMENT;
   }
+  // FLUX's dedicated settings
+  report_util_uint8_setting(259, settings.disable_tilt_detect);
+
 }
 
 

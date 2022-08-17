@@ -23,6 +23,10 @@
 
 settings_t settings;
 
+#if N_AXIS <= Z_AXIS 
+fake_z_axis_info_t fake_z_axis_info;
+#endif
+
 const settings_t defaults = {\
     .pulse_microseconds = DEFAULT_STEP_PULSE_MICROSECONDS,
     .stepper_idle_lock_time = DEFAULT_STEPPER_IDLE_LOCK_TIME,
@@ -227,9 +231,20 @@ uint8_t read_global_settings() {
 
 
 // A helper method to set settings from command line
-uint8_t settings_store_global_setting(uint8_t parameter, float value) {
+uint8_t settings_store_global_setting(uint16_t parameter, float value) {
   if (value < 0.0) { return(STATUS_NEGATIVE_VALUE); }
-  if (parameter >= AXIS_SETTINGS_START_VAL) {
+  
+  if (parameter >= 256) { // $256 ~ ???
+    // Store non-axis Grbl settings
+    //uint8_t int_value = trunc(value);
+    switch(parameter) {
+      case 259:
+        settings.disable_tilt_detect = value ? true : false;
+        break;
+      default:
+        break;
+    }
+  } else if (parameter >= AXIS_SETTINGS_START_VAL) { // $100 ~ $255
     // Store axis configuration. Axis numbering sequence set by AXIS_SETTING defines.
     // NOTE: Ensure the setting index corresponds to the report.c settings printout.
     parameter -= AXIS_SETTINGS_START_VAL;
@@ -254,6 +269,17 @@ uint8_t settings_store_global_setting(uint8_t parameter, float value) {
           case 3: settings.max_travel[parameter] = -value; break;  // Store as negative for grbl internal use.
         }
         break; // Exit while-loop after setting has been configured and proceed to the EEPROM write call.
+      #if N_AXIS <= Z_AXIS 
+      } else if (parameter == Z_AXIS) {
+        // NOTE: Fake Z_AXIS settings
+        switch (set_idx) {
+          case 0: fake_z_axis_info.steps_per_mm = value; break;
+          case 1: fake_z_axis_info.max_rate = value; break;
+          case 2: fake_z_axis_info.acceleration = value*60*60; break; // Convert to mm/min^2 for grbl internal use.
+          case 3: fake_z_axis_info.max_travel = -value; break;  // Store as negative for grbl internal use.
+        }
+        break; // Exit while-loop after setting has been configured and proceed to the EEPROM write call.
+      #endif
       } else {
         set_idx++;
         // If axis index greater than N_AXIS or setting index greater than number of axis settings, error out.
@@ -261,7 +287,7 @@ uint8_t settings_store_global_setting(uint8_t parameter, float value) {
         parameter -= AXIS_SETTINGS_INCREMENT;
       }
     }
-  } else {
+  } else { // $0 ~ $99
     // Store non-axis Grbl settings
     uint8_t int_value = trunc(value);
     switch(parameter) {
@@ -330,9 +356,6 @@ uint8_t settings_store_global_setting(uint8_t parameter, float value) {
         #else
           return(STATUS_SETTING_DISABLED_LASER);
         #endif
-        break;
-      case 33:
-        settings.disable_tilt_detect = value ? true : false;
         break;
       default:
         return(STATUS_INVALID_STATEMENT);

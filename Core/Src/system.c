@@ -285,8 +285,8 @@ uint8_t system_execute_line(char *line)
             }
           } else { // Store global setting.
             if(!read_float(line, &char_counter, &value)) { return(STATUS_BAD_NUMBER_FORMAT); }
-            if((line[char_counter] != 0) || (parameter > 255)) { return(STATUS_INVALID_STATEMENT); }
-            return(settings_store_global_setting((uint8_t)parameter, value));
+            if((line[char_counter] != 0) || (parameter > UINT16_MAX)) { return(STATUS_INVALID_STATEMENT); }
+            return(settings_store_global_setting((uint16_t)parameter, value));
           }
       }
   }
