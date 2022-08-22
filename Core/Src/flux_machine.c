@@ -54,6 +54,7 @@ void flux_periodic_handling() {
   }
   #endif
   // Detect change of orientation
+  /*
   if (settings.disable_tilt_detect != true) {
     if (millis() - MSA311_polling_ts > 400) {
       if (MSA311_working()) {
@@ -76,6 +77,7 @@ void flux_periodic_handling() {
       MSA311_polling_ts = millis();
     }
   }
+  */
 
   // Detect sudden active motion (shake or vibrate)
   if (MSA311_INT_triggered) {
