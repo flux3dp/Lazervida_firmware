@@ -1,14 +1,19 @@
 ================================================================================================
-Lazervida fw v0.1.0 (20220817)
-* Add
-    * Add a fake Z-axis settings report to make it compatible for LaserGrbl and Universal Gcode Sender
-* 新增
-    * 新增假的Z軸設定來相容LaserGrbl與Universal Gcode Sender軟體
-================================================================================================
+Lazervida fw v0.1.2 (20220831)
+* Fix
+    * Fixed incorrect position state when initial automatic homing failed
+* 修正
+    * 修正初始歸零失敗後,系統位置為負值,觸發軟體限位
 ================================================================================================
 Lazervida fw v0.1.1 (20220822)
 * Change
     * Disable tilt detection
 * 更改
     * 關閉傾斜偵測
+================================================================================================
+Lazervida fw v0.1.0 (20220817)
+* Add
+    * Add a fake Z-axis settings report to make it compatible for LaserGrbl and Universal Gcode Sender
+* 新增
+    * 新增假的Z軸設定來相容LaserGrbl與Universal Gcode Sender軟體
 ================================================================================================

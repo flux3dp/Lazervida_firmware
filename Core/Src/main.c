@@ -297,6 +297,8 @@ int main(void)
       for (idx = 0; idx < N_AXIS; idx++) {
         sys_position[idx] = 0;
       }
+      gc_sync_position();
+      plan_sync_position();
       sys.state = STATE_ALARM;
     }
     fast_raster_mode_switch_off(); // reset fast raster context

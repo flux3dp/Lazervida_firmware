@@ -375,7 +375,8 @@ void protocol_exec_rt_system()
             }
             if (sys.state != STATE_SLEEP) {
               if (sys.state != STATE_SAFETY_DOOR) {
-                // NOT EXPECT to enter this case
+                // NOT EXPECT to enter this case in normal case, 
+                // Might be triggered by ctrl cmd 0x84
                 report_feedback_message(MESSAGE_SAFETY_DOOR_AJAR);
               }
               sys.state = STATE_SAFETY_DOOR; 
