@@ -53,9 +53,9 @@ void write_to_flash() {
   /* If erase operation was failed, a Flash error code is returned */
   if (ret != HAL_OK)
   {
-    printString("Error: ");
+    printString("[MSG: flash erase error ");
     printInteger((int)ret);
-    printString("\n");
+    printString("]\n");
     return;
   }
 
