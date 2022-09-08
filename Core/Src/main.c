@@ -254,6 +254,7 @@ int main(void)
     sys.r_override = DEFAULT_RAPID_OVERRIDE; // Set to 100%
     sys.spindle_speed_ovr = DEFAULT_SPINDLE_SPEED_OVERRIDE; // Set to 100%
 		memset(sys_probe_position,0,sizeof(sys_probe_position)); // Clear probe position.
+    memset(sys_position, 0, sizeof (sys_position));          // Clear machine position
     sys_probe_state = 0;
     sys_rt_exec_state = 0;
     sys_rt_exec_alarm = 0;
