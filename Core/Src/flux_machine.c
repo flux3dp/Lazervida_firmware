@@ -24,6 +24,7 @@ volatile cmd_process_unlocker_t cmd_process_unlocker;
 bool MSA311_INT_triggered = false;
 uint32_t MSA311_polling_ts = 0;
 float reference_tilt = 3.07; // in unit of rad. Should be initialized when power up
+float tilt_average = 3.07;
 
 volatile bool machine_power_on = false;
 
@@ -54,21 +55,31 @@ void flux_periodic_handling() {
   }
   #endif
   // Detect change of orientation
-  /*
   if (settings.disable_tilt_detect != true) {
-    if (millis() - MSA311_polling_ts > 400) {
+    if (millis() - MSA311_polling_ts > 100) {
       if (MSA311_working()) {
         Adafruit_MSA311_read();
+        tilt_average = tilt_average * 0.9 + MSA311_get_tilt_y() * 0.1;
+        //printString("[DEBUG: ");
+        //printFloat(MSA311_get_x_data(), 2);
+        //printString(", ");
+        //printFloat(MSA311_get_y_data(), 2);
+        //printString(", ");
+        //printFloat(MSA311_get_z_data(), 2);
+        //printString(", ");
+        //printFloat(tilt_average, 2);
+        //printString("]\n");
         // NOTE: We only care about the change in y-axis
         if (sys.state == STATE_CYCLE) {
-          float tilt = MSA311_get_tilt_y();
-          // About 15 degree = 3.14 * 10 / 180 ~ 0.17 rad
-          if (tilt - reference_tilt > 0.85 || reference_tilt - tilt > 0.85) {
+          //float tilt = MSA311_get_tilt_y();
+          // About 10 degree = 3.14 * 10 / 180 ~ 0.17 rad
+          // About 20 degree = 3.14 * 20 / 180 ~ 0.34 rad
+          if (tilt_average - reference_tilt > 0.34 || reference_tilt - tilt_average > 0.34) {
             bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
             printString("[DEBUG: ");
             printFloat(reference_tilt, 3);
             printString(",");
-            printFloat(tilt, 3);
+            printFloat(tilt_average, 3);
             printString("]\n");
             printString("[FLUX: tilt]\n");
           }
@@ -77,7 +88,6 @@ void flux_periodic_handling() {
       MSA311_polling_ts = millis();
     }
   }
-  */
 
   // Detect sudden active motion (shake or vibrate)
   if (MSA311_INT_triggered) {
