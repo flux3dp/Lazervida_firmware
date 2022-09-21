@@ -56,10 +56,10 @@ void flux_periodic_handling() {
   #endif
   // Detect change of orientation
   if (settings.disable_tilt_detect != true) {
-    if (millis() - MSA311_polling_ts > 100) {
+    if (millis() - MSA311_polling_ts > 200) {
       if (MSA311_working()) {
         Adafruit_MSA311_read();
-        tilt_average = tilt_average * 0.9 + MSA311_get_tilt_y() * 0.1;
+        tilt_average = tilt_average * 0.96 + MSA311_get_tilt_y() * 0.04;
         //printString("[DEBUG: ");
         //printFloat(MSA311_get_x_data(), 2);
         //printString(", ");
@@ -72,9 +72,10 @@ void flux_periodic_handling() {
         // NOTE: We only care about the change in y-axis
         if (sys.state == STATE_CYCLE) {
           //float tilt = MSA311_get_tilt_y();
+          // NOTE: the vibration of motion could introduce error up to 25 degree
           // About 10 degree = 3.14 * 10 / 180 ~ 0.17 rad
-          // About 20 degree = 3.14 * 20 / 180 ~ 0.34 rad
-          if (tilt_average - reference_tilt > 0.34 || reference_tilt - tilt_average > 0.34) {
+          // About 35 degree = 3.14 * 35 / 180 ~ 0.60 rad
+          if (tilt_average - reference_tilt > 0.55 || reference_tilt - tilt_average > 0.55) {
             bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
             printString("[DEBUG: ");
             printFloat(reference_tilt, 3);
