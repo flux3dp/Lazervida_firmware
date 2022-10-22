@@ -1,7 +1,15 @@
 ================================================================================================
+Lazervida fw v0.1.5 (20220921)
+* Change
+    * Increase the sampling for G-sensor to mitigate vibration noise during motion
+    * Changed tilt detection threshold to 35 degree
+* 更改
+    * 增加加速儀取樣數量, 降低機器運作過程的震動造成的數值誤差
+    * 更改傾斜偵測角度為35度
+================================================================================================
 Lazervida fw v0.1.4 (20220921)
 * Change
-    * Enable tilt detection with threshold of 20 degree
+    * Enabled tilt detection with threshold of 20 degree
 * 更改
     * 開啟傾斜偵測,傾斜角達20度自動暫停
 ================================================================================================
