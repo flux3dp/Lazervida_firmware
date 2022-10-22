@@ -5,6 +5,7 @@ on:
       - 'feature/Add-build-with-github-action'
 jobs:
   build:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
