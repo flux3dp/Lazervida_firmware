@@ -1,0 +1,17 @@
+name: build-firmware
+on:
+  push:
+    branches:
+      - 'feature/Add-build-with-github-action'
+jobs:
+  build:
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Install GNU Arm Embedded Toolchain
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
+      - run: arm-none-eabi-gcc --version
+      - run: |
+          make -j8
+          ls -al build
+
