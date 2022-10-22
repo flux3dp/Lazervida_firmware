@@ -1,18 +1,38 @@
 name: build-firmware
 on:
-  push:
-    branches:
-      - 'feature/Add-build-with-github-action'
+  #push:
+  #  branches: [main]
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+    inputs:
+      build_version:
+        Description: 'Build Version'
+        default: '0.0.0'
+        required: true
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
+      - name: Setup environment variables
+        run: |
+          echo "GITREV=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          GITREV=$(git rev-parse HEAD)
+          echo "GITREV_SHORT=$(echo $GITREV | cut -c 1-7)" >> $GITHUB_ENV
       - name: Install GNU Arm Embedded Toolchain
         uses: carlosperate/arm-none-eabi-gcc-action@v1
       - run: arm-none-eabi-gcc --version
-      - run: |
+      - name: Build
+        run: |
           make -j8
-          ls -al build
+          mv build/Lazervida.hex build/firmware.bin
+      - name: Create release and Upload the artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          files: build/firmware.bin
+          name: ${{ inputs.build_version }}
+          tag_name: ${{ inputs.build_version }}-${{ env.GITREV_SHORT }}
+          target_commitish: ${{ env.GITREV }}
 
