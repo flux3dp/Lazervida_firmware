@@ -222,6 +222,11 @@ int fast_raster_mode_start_print_new_line()
       //printString("[DEBUG: Start Printing Line]\n");
 
       return 0;
+    } else if (filling_line_ctx->status == kLinePatternEmpty) {
+      if (printing_line_ctx->status == kLinePatternPrinting) {
+        // Ignore re-enter: consider as success
+        return 0;
+      }
     } else {
       //printString("[DEBUG: NREADY]\n");
     }
