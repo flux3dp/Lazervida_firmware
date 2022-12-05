@@ -23,8 +23,8 @@ volatile cmd_process_unlocker_t cmd_process_unlocker;
 
 bool MSA311_INT_triggered = false;
 uint32_t MSA311_polling_ts = 0;
-float reference_tilt = 3.07; // in unit of rad. Should be initialized when power up
-float tilt_average = 3.07;
+float reference_tilt = 3.10; // in unit of rad. Should be initialized when power up
+float tilt_average = 3.10;
 
 volatile bool machine_power_on = false;
 
@@ -56,7 +56,7 @@ void flux_periodic_handling() {
   #endif
   // Detect change of orientation
   if (settings.disable_tilt_detect != true) {
-    if (millis() - MSA311_polling_ts > 200) {
+    if (millis() - MSA311_polling_ts > 120) {
       if (MSA311_working()) {
         Adafruit_MSA311_read();
         tilt_average = tilt_average * 0.96 + MSA311_get_tilt_y() * 0.04;
@@ -75,14 +75,28 @@ void flux_periodic_handling() {
           // NOTE: the vibration of motion could introduce error up to 25 degree
           // About 10 degree = 3.14 * 10 / 180 ~ 0.17 rad
           // About 35 degree = 3.14 * 35 / 180 ~ 0.60 rad
-          if (tilt_average - reference_tilt > 0.55 || reference_tilt - tilt_average > 0.55) {
-            bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
-            printString("[DEBUG: ");
-            printFloat(reference_tilt, 3);
-            printString(",");
-            printFloat(tilt_average, 3);
-            printString("]\n");
-            printString("[FLUX: tilt]\n");
+          if (CURRENT_LASER_PWM_POWER >= ((SPINDLE_PWM_MAX_VALUE - SPINDLE_PWM_MIN_VALUE) * 0.03 + SPINDLE_PWM_MIN_VALUE)) {
+            // Danger laser power -> increase sensitivity to tilt
+            if (tilt_average - reference_tilt > 0.08 || reference_tilt - tilt_average > 0.08) {
+              bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+              printString("[DEBUG: ");
+              printFloat(reference_tilt, 3);
+              printString(",");
+              printFloat(tilt_average, 3);
+              printString("]\n");
+              printString("[FLUX: tilt]\n");
+            }
+          } else {
+            // Not emiting much laser -> decrease sensitivity to tilt 
+            if (tilt_average - reference_tilt > 0.40 || reference_tilt - tilt_average > 0.40) {
+              bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+              printString("[DEBUG: ");
+              printFloat(reference_tilt, 3);
+              printString(",");
+              printFloat(tilt_average, 3);
+              printString("]\n");
+              printString("[FLUX: tilt]\n");
+            }
           }
         }
       }

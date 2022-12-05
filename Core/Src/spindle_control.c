@@ -30,7 +30,6 @@
   uint16_t cached_laser_pwm;
 #endif
 
-#define CURRENT_LASER_PWM_POWER (htim3.Instance->CCR3)
 #define LASER_ENABLE_OUTPUT_STATE ((LASER_EN_GPIO_Port->ODR) & LASER_EN_Pin)
 
 void spindle_init()

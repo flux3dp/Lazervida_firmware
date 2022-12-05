@@ -29,6 +29,7 @@
 #define SPINDLE_STATE_CW       bit(0)
 #define SPINDLE_STATE_CCW      bit(1)
 
+#define CURRENT_LASER_PWM_POWER (htim3.Instance->CCR3)
 
 // Initializes spindle pins and hardware PWM, if enabled.
 void spindle_init();
