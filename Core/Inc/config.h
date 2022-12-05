@@ -430,7 +430,7 @@
 // available RAM, like when re-compiling for a Mega2560. Or decrease if the Arduino begins to
 // crash due to the lack of available RAM or if the CPU is having trouble keeping up with planning
 // new incoming motions as they are executed.
-#define BLOCK_BUFFER_SIZE 75 // Uncomment to override default in planner.h.
+#define BLOCK_BUFFER_SIZE 70 // Uncomment to override default in planner.h.
 
 // Governs the size of the intermediary step segment buffer between the step execution algorithm
 // and the planner blocks. Each segment is set of steps executed at a constant velocity over a
@@ -462,7 +462,7 @@
 // 115200 baud will take 5 msec to transmit a typical 55 character report. Worst case reports are
 // around 90-100 characters. As long as the serial TX buffer doesn't get continually maxed, Grbl
 // will continue operating efficiently. Size the TX buffer around the size of a worst-case report.
-#define RX_BUFFER_SIZE 255 // (1-254) Uncomment to override defaults in serial.h
+#define RX_BUFFER_SIZE 128 // (1-254) Uncomment to override defaults in serial.h
 #define TX_BUFFER_SIZE 255 // (1-254)
 
 // A simple software debouncing feature for hard limit switches. When enabled, the interrupt 

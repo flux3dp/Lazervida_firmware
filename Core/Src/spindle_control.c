@@ -334,7 +334,8 @@ void spindle_stop()
   void spindle_sync(uint8_t state, float rpm)
   {
     if (sys.state == STATE_CHECK_MODE) { return; }
-    protocol_buffer_synchronize(); // Empty planner buffer to ensure spindle is set when programmed.
+    // Block here until planner buffer becomes empty to ensure spindle is set when programmed.
+    protocol_buffer_synchronize(); 
     if (state == SPINDLE_DISABLE) {
       reset_power_24v();
     } else {

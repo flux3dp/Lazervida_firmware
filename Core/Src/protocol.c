@@ -205,8 +205,14 @@ void protocol_main_loop()
 void protocol_buffer_synchronize()
 {
   // If system is queued, ensure cycle resumes if the auto start flag is present.
-  protocol_auto_cycle_start();
+  // ============= Modified by FLUX ================
+  //protocol_auto_cycle_start();
   do {
+    // NOTE: Call protocol_auto_cycle_start() repetitively instead of once at first.
+    //       This is necessary to handle the case that interrupt happens so frequently 
+    //       that st_prep_buffer() isn't called before segment buffer is cleared (and plan buffer still contain blocks)
+    protocol_auto_cycle_start();
+    // ====================================================
     protocol_execute_realtime();   // Check and execute run-time commands
     if (sys.abort) { return; } // Check for system abort
   } while (plan_get_current_block() || (sys.state == STATE_CYCLE));
