@@ -27,6 +27,103 @@
 
 static Adafruit_MSA311 msa311;
 
+int16_t kalman_filter_x(int16_t x_val)
+{
+    float x_k1_k1,x_k_k1;
+    //static float ADC_OLD_Value;
+    float Z_k;
+    static float P_k1_k1;
+
+    static float Q = 0.0001; //0.0001;//Q: Regulation noise, Q increases, dynamic response becomes faster, and convergence stability becomes worse
+    static float R = 0.01; // 0.005; //R: Test noise, R increases, dynamic response becomes slower, convergence stability becomes better
+    static float Kg = 0;
+    static float P_k_k1 = 1;
+
+    float kalman_adc;
+    static float kalman_adc_old=0;
+    Z_k = x_val;
+    x_k1_k1 = kalman_adc_old;
+
+    x_k_k1 = x_k1_k1;
+    P_k_k1 = P_k1_k1 + Q;
+
+    Kg = P_k_k1/(P_k_k1 + R);
+
+    kalman_adc = x_k_k1 + Kg * (Z_k - kalman_adc_old);
+    P_k1_k1 = (1 - Kg)*P_k_k1;
+    P_k_k1 = P_k1_k1;
+
+    //ADC_OLD_Value = x_val;
+    kalman_adc_old = kalman_adc;
+
+    return kalman_adc;
+}
+
+int16_t kalman_filter_y(int16_t y_val)
+{
+    float x_k1_k1,x_k_k1;
+    //static float ADC_OLD_Value;
+    float Z_k;
+    static float P_k1_k1;
+
+    static float Q = 0.0002; //0.0001;//Q: Regulation noise, Q increases, dynamic response becomes faster, and convergence stability becomes worse
+    static float R = 0.005; //R: Test noise, R increases, dynamic response becomes slower, convergence stability becomes better
+    static float Kg = 0;
+    static float P_k_k1 = 1;
+
+    float kalman_adc;
+    static float kalman_adc_old=0;
+    Z_k = y_val;
+    x_k1_k1 = kalman_adc_old;
+
+    x_k_k1 = x_k1_k1;
+    P_k_k1 = P_k1_k1 + Q;
+
+    Kg = P_k_k1/(P_k_k1 + R);
+
+    kalman_adc = x_k_k1 + Kg * (Z_k - kalman_adc_old);
+    P_k1_k1 = (1 - Kg)*P_k_k1;
+    P_k_k1 = P_k1_k1;
+
+    //ADC_OLD_Value = y_val;
+    kalman_adc_old = kalman_adc;
+
+    return kalman_adc;
+}
+
+int16_t kalman_filter_z(int16_t z_val)
+{
+    float x_k1_k1,x_k_k1;
+    //static float ADC_OLD_Value;
+    float Z_k;
+    static float P_k1_k1;
+
+    static float Q = 0.0001; //0.0001;//Q: Regulation noise, Q increases, dynamic response becomes faster, and convergence stability becomes worse
+    static float R = 0.01; // 0.005; //R: Test noise, R increases, dynamic response becomes slower, convergence stability becomes better
+    static float Kg = 0;
+    static float P_k_k1 = 1;
+
+    float kalman_adc;
+    static float kalman_adc_old=0;
+    Z_k = z_val;
+    x_k1_k1 = kalman_adc_old;
+
+    x_k_k1 = x_k1_k1;
+    P_k_k1 = P_k1_k1 + Q;
+
+    Kg = P_k_k1/(P_k_k1 + R);
+
+    kalman_adc = x_k_k1 + Kg * (Z_k - kalman_adc_old);
+    P_k1_k1 = (1 - Kg)*P_k_k1;
+    P_k_k1 = P_k1_k1;
+
+    //ADC_OLD_Value = z_val;
+    kalman_adc_old = kalman_adc;
+
+    return kalman_adc;
+}
+
+
 /**************************************************************************/
 /*!
     @brief  Instantiates a new MSA311 class
@@ -304,9 +401,9 @@ void Adafruit_MSA311_read(void) {
   if (range == MSA311_RANGE_2_G)
     scale = 1024;
 
-  msa311.x_g = (float)msa311.x / scale;
-  msa311.y_g = (float)msa311.y / scale;
-  msa311.z_g = (float)msa311.z / scale;
+  msa311.x_g = (float)kalman_filter_x(msa311.x) / scale;
+  msa311.y_g = (float)kalman_filter_y(msa311.y) / scale;
+  msa311.z_g = (float)kalman_filter_z(msa311.z) / scale;
 }
 
 /**
