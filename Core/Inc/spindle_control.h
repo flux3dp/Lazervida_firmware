@@ -41,7 +41,7 @@ uint8_t spindle_get_state();
 // Immediately sets spindle running state with direction and spindle rpm via PWM, if enabled.
 // Called by spindle_sync() after sync and parking motion/spindle stop override during restore.
 #ifdef VARIABLE_SPINDLE
-  extern uint16_t cached_laser_pwm;
+  //extern uint16_t cached_laser_pwm;
 
   // Called by g-code parser when setting spindle state and requires a buffer sync.
   void spindle_sync(uint8_t state, float rpm);
@@ -51,7 +51,7 @@ uint8_t spindle_get_state();
   
   // Sets spindle PWM quickly for stepper ISR. Also called by spindle_set_state().
   // NOTE: 328p PWM register is 8-bit.
-  void spindle_set_speed(uint16_t pwm_value, bool update_cache);
+  void spindle_set_speed(uint16_t pwm_value);
   
   // Computes PWM register value (TIMx->CCRx) for the given RPM for quick updating.
   uint16_t spindle_compute_pwm_value(float rpm);

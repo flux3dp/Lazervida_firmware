@@ -426,10 +426,12 @@ uint8_t gc_execute_line(const char *line)
         switch (int_value) {
           case 0: // D0R[Resolution], set resolution and enter fast raster mode
             /* Lock until ALL the previous motions are complete */
-            if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
-              cmd_process_locker.fast_raster_print = 1;
-              return (STATUS_GCODE_CMD_LOCKED);
-            }
+            //if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
+            //  cmd_process_locker.fast_raster_print = 1;
+            //  return (STATUS_GCODE_CMD_LOCKED);
+            //}
+            protocol_buffer_synchronize();
+            if (sys.abort) { return STATUS_OK; }
             fast_raster_mode_switch_off(); // Reset fast raster mode context first
             if(line[char_counter] == 'R') // D0R[Resolution]
             {
@@ -473,14 +475,17 @@ uint8_t gc_execute_line(const char *line)
           case 4: // D4
             if(line[char_counter] == 'P' && line[char_counter+1] == 'L') 
             {
-              if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
-                cmd_process_locker.fast_raster_print = 1;
-                return (STATUS_GCODE_CMD_LOCKED);
-              }
-              if (fast_raster_print_DPL_handler() == false) { // Still busy
-                cmd_process_locker.fast_raster_print = 1;
-                return (STATUS_GCODE_CMD_LOCKED);
-              }
+              //if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
+              //  cmd_process_locker.fast_raster_print = 1;
+              //  return (STATUS_GCODE_CMD_LOCKED);
+              //}
+              //if (fast_raster_print_DPL_handler() == false) { // Still busy
+              //  cmd_process_locker.fast_raster_print = 1;
+              //  return (STATUS_GCODE_CMD_LOCKED);
+              //}
+              protocol_buffer_synchronize();
+              if (sys.abort) { return STATUS_OK; }
+              fast_raster_print_DPL_handler();
               // Ready
               // Force turn off laser just in case (might be redundant)
               //ResetSpindleEnablebit();
@@ -490,10 +495,12 @@ uint8_t gc_execute_line(const char *line)
             FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
           case 5: // D5, exit fast raster mode
             /* Lock until ALL the previous motions are complete */
-            if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
-              cmd_process_locker.fast_raster_print = 1;
-              return (STATUS_GCODE_CMD_LOCKED);
-            }
+            protocol_buffer_synchronize();
+            if (sys.abort) { return STATUS_OK; }
+            //if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
+            //  cmd_process_locker.fast_raster_print = 1;
+            //  return (STATUS_GCODE_CMD_LOCKED);
+            //}
             spindle_stop(); // for safety, in case spindle not stop
             // All raster line prints must have been completed
             fast_raster_mode_switch_off(); // Switch off at the end of this command

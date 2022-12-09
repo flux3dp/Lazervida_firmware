@@ -18,8 +18,8 @@ extern system_t sys;
 
 volatile uint8_t host_com_port_open = 0;
 
-volatile cmd_process_locker_t cmd_process_locker;
-volatile cmd_process_unlocker_t cmd_process_unlocker;
+//volatile cmd_process_locker_t cmd_process_locker;
+//volatile cmd_process_unlocker_t cmd_process_unlocker;
 
 bool MSA311_INT_triggered = false;
 uint32_t MSA311_polling_ts = 0;
