@@ -1085,13 +1085,14 @@ void major_step_ctrl_ISR(
         //spindle_set_speed(st.exec_segment->spindle_pwm, true);
         // ================== Start of FLUX's dedicated code ==================
         if (is_in_fast_raster_mode()) {
-          if (st.exec_block->steps[Y_AXIS] == 0 && fast_raster_print_is_in_black_pixel()) { // NOTE: Only emit light when moving horizontally
+          if (fast_raster_print_is_in_black_pixel()) { // NOTE: Only emit light when moving horizontally
           //if (is_printing_fast_raster_line() && fast_raster_print_emitting()) {
             spindle_set_speed(st.exec_segment->spindle_pwm);
           } else {
             spindle_set_speed(SPINDLE_PWM_OFF_VALUE);
           }
         } else {
+          // Case for Normal mode
           spindle_set_speed(st.exec_segment->spindle_pwm);
         }
         // ================== End of FLUX's dedicated code ==================
@@ -1138,7 +1139,7 @@ void major_step_ctrl_ISR(
     #ifdef VARIABLE_SPINDLE
       if (is_in_fast_raster_mode()) {
         // NOTE: Only emit light when moving horizontally
-        if (st.exec_block->steps[Y_AXIS] == 0  && is_on_fast_raster_mode_pixel_boundary()) {
+        if (is_on_fast_raster_mode_pixel_boundary()) {
           if (fast_raster_mode_pop_printing_bit()) { // Black pixel
             //printString("B");
             spindle_set_speed(st.exec_segment->spindle_pwm);
