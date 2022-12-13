@@ -78,7 +78,8 @@ void flux_periodic_handling() {
           // About 35 degree = 3.14 * 35 / 180 ~ 0.60 rad
           if (CURRENT_LASER_PWM_POWER >= ((SPINDLE_PWM_MAX_VALUE - SPINDLE_PWM_MIN_VALUE) * 0.03 + SPINDLE_PWM_MIN_VALUE)) {
             // Danger laser power -> increase sensitivity to tilt
-            if (tilt_average - reference_tilt > 0.20 || reference_tilt - tilt_average > 0.20) {
+            if (tilt_average - reference_tilt > settings.tilt_detect_threshold || 
+                reference_tilt - tilt_average > settings.tilt_detect_threshold) {
               bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
               printString("[DEBUG: ");
               printFloat(reference_tilt, 3);
@@ -88,8 +89,9 @@ void flux_periodic_handling() {
               printString("[FLUX: tilt]\n");
             }
           } else {
-            // Not emiting much laser -> decrease sensitivity to tilt 
-            if (tilt_average - reference_tilt > 0.28 || reference_tilt - tilt_average > 0.28) {
+            // Not emiting much laser -> decrease sensitivity to tilt
+            if (tilt_average - reference_tilt > (settings.tilt_detect_threshold + 0.1) || 
+                reference_tilt - tilt_average > (settings.tilt_detect_threshold + 0.1)) {
               bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
               printString("[DEBUG: ");
               printFloat(reference_tilt, 3);
