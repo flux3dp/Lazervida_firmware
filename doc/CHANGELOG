@@ -1,4 +1,16 @@
 ================================================================================================
+Lazervida fw v1.0.1 (20221228)
+* Change
+    * Changed the sensitivity of tilt detect (~20degree) and reduced noise with software filter
+* Fix
+    * Fixed incorrect laser power in fast raster engraving
+    * Fixed stop unexpectedly
+* 更改
+    * 增加傾斜偵測靈敏度, 並降低六軸加速度計雜訊
+* 修正
+    * 修正快速雕刻的雷射出光強度偏低問題與條紋問題
+    * 修正未預期停止問題
+================================================================================================
 Lazervida fw v0.1.5 (20220921)
 * Change
     * Increase the sampling for G-sensor to mitigate vibration noise during motion
