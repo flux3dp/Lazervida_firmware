@@ -243,7 +243,7 @@ void report_grbl_settings() {
   }
   // FLUX's dedicated settings
   report_util_uint8_setting(259, settings.disable_tilt_detect);
-
+  report_util_float_setting(260, settings.tilt_detect_threshold, 2);
 }
 
 

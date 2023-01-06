@@ -25,10 +25,25 @@
 #include "grbl.h"
 
 
+/**
+ * To add (change) a new settings,
+ *    1. Change the current SETTINGS_VERSION_LATEST into SETTINGS_VERSION_XX
+ *    2. Add a new macro SETTINGS_VERSION_LATEST with value incremented
+ *    3. Change the declaration of current settings_t into settings_vXX_t
+ *    4. Create a new settings_t with new setting attributes
+ *    5. Could add a default value macro in defaults.h
+ *    6. Modify "const settings_t defaults = ...." (add default value to the new attribute)
+ *    7. Modify read_global_settings()
+ *    8. Modify settings_store_global_setting()
+ *    9. Modify report_grbl_settings()
+ */
+
+
 // Version of the EEPROM data. Will be used to migrate existing data from older versions of Grbl
 // when firmware is upgraded. Always stored in byte 0 of eeprom
 #define SETTINGS_VERSION_10     10  // NOTE: Check settings_reset() when moving to next version.
-#define SETTINGS_VERSION_LATEST 11  // NOTE: Check settings_reset() when moving to next version.
+#define SETTINGS_VERSION_11     11  // NOTE: Check settings_reset() when moving to next version.
+#define SETTINGS_VERSION_LATEST 12  // NOTE: Check settings_reset() when moving to next version.
 
 // Define bit flag masks for the boolean settings in settings.flag.
 #define BIT_REPORT_INCHES      0
@@ -146,7 +161,42 @@ typedef struct {
   // Added since V11
   uint8_t disable_tilt_detect; // $33
 
+} settings_v11_t;
+typedef struct {
+  // Axis settings
+  float steps_per_mm[N_AXIS]; // $100    ~ 100    + N_AXIS
+  float max_rate[N_AXIS];     // $100+10 ~ 100+10 + N_AXIS
+  float acceleration[N_AXIS]; // $100+20 ~ 100+20 + N_AXIS
+  float max_travel[N_AXIS];   // $100+30 ~ 100+30 + N_AXIS
+
+  // Remaining Grbl settings
+  uint8_t pulse_microseconds; // $0
+  uint8_t step_invert_mask;   // $2
+  uint8_t dir_invert_mask;    // $3
+  uint8_t stepper_idle_lock_time; // $1: If max value 255, steppers do not disable.
+  uint8_t status_report_mask; // $10: Mask to indicate desired report data.
+  float junction_deviation;   // $11
+  float arc_tolerance;        // $12
+
+  float rpm_max;              // $30
+  float rpm_min;              // $31
+
+  // $4, $5, $6, $13, $20, $21, $22, $32
+  uint8_t flags;  // Contains default boolean settings
+
+  uint8_t homing_dir_mask;    // $23
+  float homing_feed_rate;     // $24
+  float homing_seek_rate;     // $25
+  uint16_t homing_debounce_delay; // $26
+  float homing_pulloff;       // $27
+
+  // ========= FLUX's dedicated =========
+  // Added since V11
+  uint8_t disable_tilt_detect; // $259
+  // Added since V12
+  float   tilt_detect_threshold; // $260
 } settings_t;
+
 extern settings_t settings;
 
 #if N_AXIS <= Z_AXIS 

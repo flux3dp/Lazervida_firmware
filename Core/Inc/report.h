@@ -60,7 +60,7 @@
 #define STATUS_GCODE_G43_DYNAMIC_AXIS_ERROR 37
 #define STATUS_GCODE_MAX_VALUE_EXCEEDED 38
 
-#define STATUS_GCODE_CMD_LOCKED 50
+//#define STATUS_GCODE_CMD_LOCKED 50
 
 
 // Define Grbl alarm codes. Valid values (1-255). 0 is reserved.

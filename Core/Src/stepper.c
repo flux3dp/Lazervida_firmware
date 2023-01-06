@@ -303,13 +303,13 @@ void st_go_idle()
 
 
   // End of a raster line instead of just a pause -> unlock D4PL or D5
-  if (cmd_process_locker.fast_raster_print) {
-    if (is_printing_fast_raster_line() && plan_get_block_buffer_count() == 0) {
-      fast_raster_mode_finish_current_line();
-    }
-    cmd_process_unlocker.fast_raster_print = 1;
-    //printString("[Unlocked]\n");
-  }
+  //if (cmd_process_locker.fast_raster_print) {
+  //  if (is_printing_fast_raster_line() && plan_get_block_buffer_count() == 0) {
+  //    fast_raster_mode_finish_current_line();
+  //  }
+  //  cmd_process_unlocker.fast_raster_print = 1;
+  //  //printString("[Unlocked]\n");
+  //}
 
   // =====================================================
 }
@@ -1082,10 +1082,20 @@ void major_step_ctrl_ISR(
 
       #ifdef VARIABLE_SPINDLE
         // Set real-time spindle output as segment is loaded, just prior to the first step.
-        spindle_set_speed(st.exec_segment->spindle_pwm, true);
+        //spindle_set_speed(st.exec_segment->spindle_pwm, true);
+        // ================== Start of FLUX's dedicated code ==================
         if (is_in_fast_raster_mode()) {
-          spindle_set_speed(SPINDLE_PWM_OFF_VALUE, false);
+          if (fast_raster_print_is_in_black_pixel()) { // NOTE: Only emit light when moving horizontally
+          //if (is_printing_fast_raster_line() && fast_raster_print_emitting()) {
+            spindle_set_speed(st.exec_segment->spindle_pwm);
+          } else {
+            spindle_set_speed(SPINDLE_PWM_OFF_VALUE);
+          }
+        } else {
+          // Case for Normal mode
+          spindle_set_speed(st.exec_segment->spindle_pwm);
         }
+        // ================== End of FLUX's dedicated code ==================
       #endif
 
     } else {
@@ -1093,7 +1103,7 @@ void major_step_ctrl_ISR(
       st_go_idle();
       #ifdef VARIABLE_SPINDLE
         // Ensure pwm is set properly upon completion of rate-controlled motion.
-        if (st.exec_block->is_pwm_rate_adjusted) { spindle_set_speed(SPINDLE_PWM_OFF_VALUE, true); }
+        if (st.exec_block->is_pwm_rate_adjusted) { spindle_set_speed(SPINDLE_PWM_OFF_VALUE); }
       #endif
       system_set_exec_state_flag(EXEC_CYCLE_STOP); // Flag main program for cycle end
       return; // Nothing to do but exit.
@@ -1128,13 +1138,14 @@ void major_step_ctrl_ISR(
     // ================== Start of FLUX's dedicated code ==================
     #ifdef VARIABLE_SPINDLE
       if (is_in_fast_raster_mode()) {
+        // NOTE: Only emit light when moving horizontally
         if (is_on_fast_raster_mode_pixel_boundary()) {
           if (fast_raster_mode_pop_printing_bit()) { // Black pixel
             //printString("B");
-            spindle_set_speed(cached_laser_pwm, false);
+            spindle_set_speed(st.exec_segment->spindle_pwm);
           } else { // White pixel
             //printString("W");
-            spindle_set_speed(SPINDLE_PWM_OFF_VALUE, false);
+            spindle_set_speed(SPINDLE_PWM_OFF_VALUE);
           }
         }
         fast_raster_mode_inc_one_step();

@@ -73,8 +73,9 @@ const settings_t defaults = {\
 
     // ======= FLUX's dedicated =======
     // Added since v11
-    .disable_tilt_detect = false,
-
+    .disable_tilt_detect = DEFAULT_TILT_DETCTION_MUTE,
+    // Added since v12
+    .tilt_detect_threshold = DEFAULT_TILT_DETECTION_THRESHOLD,
 };
 
 
@@ -216,7 +217,15 @@ uint8_t read_global_settings() {
     if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL_GRBL_SETTINGS, sizeof(settings_v10_t)))) {
       return(false);
     }
-    settings.disable_tilt_detect = false;
+    settings.disable_tilt_detect = DEFAULT_TILT_DETCTION_MUTE;  // since V11
+    settings.tilt_detect_threshold = DEFAULT_TILT_DETECTION_THRESHOLD; // since V12
+    write_global_settings();
+  } else if (version == SETTINGS_VERSION_11) {
+    // Read settings-record and check checksum
+    if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL_GRBL_SETTINGS, sizeof(settings_v11_t)))) {
+      return(false);
+    }
+    settings.tilt_detect_threshold = DEFAULT_TILT_DETECTION_THRESHOLD; // since V12
     write_global_settings();
   } else if (version == SETTINGS_VERSION_LATEST) {
     // Read settings-record and check checksum
@@ -240,6 +249,10 @@ uint8_t settings_store_global_setting(uint16_t parameter, float value) {
     switch(parameter) {
       case 259:
         settings.disable_tilt_detect = value ? true : false;
+        break;
+      case 260:
+        // valid value range: 0 ~ 3
+        settings.tilt_detect_threshold = value > 3 ? 3 : (value < 0 ? 0 : value);
         break;
       default:
         break;
