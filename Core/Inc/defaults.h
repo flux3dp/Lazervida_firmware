@@ -62,6 +62,10 @@
   #define DEFAULT_HOMING_SEEK_RATE 3600.0 // mm/min
   #define DEFAULT_HOMING_DEBOUNCE_DELAY 5 // msec (0-65k)
   #define DEFAULT_HOMING_PULLOFF 1.5 // mm
+
+  // FLUX's dedicated
+  #define DEFAULT_TILT_DETCTION_MUTE      false
+  #define DEFAULT_TILT_DETECTION_THRESHOLD 0.23
 #endif
 
 #ifdef DEFAULTS_GENERIC

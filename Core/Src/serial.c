@@ -160,6 +160,7 @@ void serial_handle_data(uint8_t data)
 {
   //uint8_t data = UDR0;
   uint8_t next_head;
+  host_com_port_open = 1; // Just in case, not needed typically
 
   // Pick off realtime command characters directly from the serial stream. These characters are
   // not passed into the main buffer, but these set system state flag bits for realtime execution.

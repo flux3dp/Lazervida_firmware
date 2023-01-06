@@ -41,6 +41,8 @@
 parser_state_t gc_state;
 parser_block_t gc_block;
 
+extern float tilt_average;
+
 #define FAIL(status) return(status);
 
 
@@ -348,62 +350,70 @@ uint8_t gc_execute_line(const char *line)
           case 14:
             start_firmware_update();
             return (STATUS_INVALID_STATEMENT);
+          // ============ Debug cmds =================
+          case 101:
+            printString("Tilt value: ");
+            printFloat(tilt_average, 3);
+            printString(", ");
+            printFloat(MSA311_get_tilt_y(), 3);
+            printString("\n");
+            return (STATUS_OK);
           /*
-          case 18:
+          case 101:
             print_uint8_base2_ndigit(MSA311_get_partid(), 8);
             printString("\n");
             return (STATUS_OK);
-          case 19:
+          case 102:
             print_uint32_base2_ndigit(Adafruit_MSA311_getDataRate(), 4);
             printString("\n");
             return (STATUS_OK);
-          case 20:
+          case 103:
             print_uint32_base2_ndigit(Adafruit_MSA311_getPowerMode(), 2);
             printString("\n");
             return (STATUS_OK);
-          case 21:
+          case 104:
             print_uint32_base2_ndigit(Adafruit_MSA311_getBandwidth(), 2);
             printString("\n");
             return (STATUS_OK);
-          case 22:
+          case 105:
             print_uint32_base2_ndigit(Adafruit_MSA311_getRange(), 2);
             printString("\n");
             return (STATUS_OK);
-          case 23:
+          case 106:
             print_uint8_base2_ndigit(Adafruit_MSA311_getMotionInterruptStatus(), 8);
             printString("\n");
             return (STATUS_OK);
-          case 24:
+          case 107:
             MSA311_setActiveInterruptThresh(10);
             return (STATUS_OK);
-          case 25:
+          case 108:
             MSA311_setActiveInterruptThresh(100);
             return (STATUS_OK);
-          case 26:
+          case 109:
             MSA311_setActiveInterruptThresh(150);
             return (STATUS_OK);
-          case 27:
+          case 110:
             MSA311_setActiveInterruptThresh(200);
             return (STATUS_OK);
-          case 28:
+          case 111:
             MSA311_setActiveInterruptThresh(90);
             return (STATUS_OK);
-          case 29:
+          case 112:
             print_uint8_base10(MSA311_getActiveInterruptThresh());
             return (STATUS_OK);
-          case 30:
+          case 113:
             MSA311_setActiveInterruptDur(MSA311_ACTIVEDUR_2_MS);
             return (STATUS_OK);
-          case 31:
+          case 114:
             MSA311_setActiveInterruptDur(MSA311_ACTIVEDUR_3_MS);
             return (STATUS_OK);
-          case 32:
+          case 115:
             MSA311_setActiveInterruptDur(MSA311_ACTIVEDUR_4_MS);
             return (STATUS_OK);
-          case 33:
+          case 116:
             print_uint8_base10(MSA311_getActiveInterruptDur() + 1);
             return (STATUS_OK);
-          case 34:
+          case 117:
             eeprom_dump();
             return (STATUS_OK);
           */
@@ -416,10 +426,12 @@ uint8_t gc_execute_line(const char *line)
         switch (int_value) {
           case 0: // D0R[Resolution], set resolution and enter fast raster mode
             /* Lock until ALL the previous motions are complete */
-            if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
-              cmd_process_locker.fast_raster_print = 1;
-              return (STATUS_GCODE_CMD_LOCKED);
-            }
+            //if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
+            //  cmd_process_locker.fast_raster_print = 1;
+            //  return (STATUS_GCODE_CMD_LOCKED);
+            //}
+            protocol_buffer_synchronize();
+            if (sys.abort) { return STATUS_OK; }
             fast_raster_mode_switch_off(); // Reset fast raster mode context first
             if(line[char_counter] == 'R') // D0R[Resolution]
             {
@@ -463,14 +475,17 @@ uint8_t gc_execute_line(const char *line)
           case 4: // D4
             if(line[char_counter] == 'P' && line[char_counter+1] == 'L') 
             {
-              if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
-                cmd_process_locker.fast_raster_print = 1;
-                return (STATUS_GCODE_CMD_LOCKED);
-              }
-              if (fast_raster_print_DPL_handler() == false) { // Still busy
-                cmd_process_locker.fast_raster_print = 1;
-                return (STATUS_GCODE_CMD_LOCKED);
-              }
+              //if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
+              //  cmd_process_locker.fast_raster_print = 1;
+              //  return (STATUS_GCODE_CMD_LOCKED);
+              //}
+              //if (fast_raster_print_DPL_handler() == false) { // Still busy
+              //  cmd_process_locker.fast_raster_print = 1;
+              //  return (STATUS_GCODE_CMD_LOCKED);
+              //}
+              protocol_buffer_synchronize();
+              if (sys.abort) { return STATUS_OK; }
+              fast_raster_print_DPL_handler();
               // Ready
               // Force turn off laser just in case (might be redundant)
               //ResetSpindleEnablebit();
@@ -480,10 +495,12 @@ uint8_t gc_execute_line(const char *line)
             FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
           case 5: // D5, exit fast raster mode
             /* Lock until ALL the previous motions are complete */
-            if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
-              cmd_process_locker.fast_raster_print = 1;
-              return (STATUS_GCODE_CMD_LOCKED);
-            }
+            protocol_buffer_synchronize();
+            if (sys.abort) { return STATUS_OK; }
+            //if (plan_get_current_block() != NULL || !st_prep_buffer_empty()) {
+            //  cmd_process_locker.fast_raster_print = 1;
+            //  return (STATUS_GCODE_CMD_LOCKED);
+            //}
             spindle_stop(); // for safety, in case spindle not stop
             // All raster line prints must have been completed
             fast_raster_mode_switch_off(); // Switch off at the end of this command

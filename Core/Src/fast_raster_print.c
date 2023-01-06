@@ -10,6 +10,25 @@
 #define LAZER_VIDA_BUFFER_SIZE 2075 // 415mm/0.025mm / 8(bits/byte) = 2075 bytes
 #define LASER_PROFILE_BUFFER_SIZE LAZER_VIDA_BUFFER_SIZE
 
+/**
+ *  
+ *    current_step_idx
+ *         |
+ *         v
+ *   |-----*-----|-----------|-----------|-----------|-----------|
+ *   ^           ^
+ *   |           |
+ *  pixel boundaries
+ * 
+ *  Description:
+ *    current_step_idx is incremented by fast_raster_mode_inc_one_step().
+ *    When current_step_idx reach (exceed) the (nearest) boundray by checking is_on_fast_raster_mode_pixel_boundary(), 
+ *    we call fast_raster_mode_pop_printing_bit() to get the next pixel value
+ * 
+ *    We also use a variable is_in_black_pixel to cache the current pixel
+ * 
+ */
+
 
 typedef enum
 {
@@ -17,7 +36,7 @@ typedef enum
   kLinePatternFilling,  // Accepting D2W cmd
   kLinePatternReady,    // D3FE accepted
   kLinePatternPrinting, // D4PL accepted
-  kLinePatternFinish
+  //kLinePatternFinish
 } LinePatternBufStatus;
 
 typedef struct LinePatternCtx
@@ -40,6 +59,7 @@ typedef struct FastRasterPrintCtx
   LinePatternCtx line_ctx_array[2]; 
 
   uint32_t current_step_idx; // the count of step that has been traveled in the current printing line, reset to 0 in each D4PL, increment in TIM interrupt
+  bool is_in_black_pixel;
 } FastRasterPrintCtx;
 
 
@@ -54,6 +74,7 @@ static void reset_graient_mode_ctx()
   raster_ctx.line_ctx_array[raster_ctx.filling_line_idx].status = kLinePatternEmpty;
   raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].status = kLinePatternEmpty;
   raster_ctx.resolution = kRasterHighRes;
+  raster_ctx.is_in_black_pixel = false;
 }
 
 
@@ -222,6 +243,11 @@ int fast_raster_mode_start_print_new_line()
       //printString("[DEBUG: Start Printing Line]\n");
 
       return 0;
+    } else if (filling_line_ctx->status == kLinePatternEmpty) {
+      if (printing_line_ctx->status == kLinePatternPrinting) {
+        // Ignore re-enter: consider as success
+        return 0;
+      }
     } else {
       //printString("[DEBUG: NREADY]\n");
     }
@@ -236,14 +262,14 @@ int fast_raster_mode_start_print_new_line()
 }
 
 
-bool is_printing_fast_raster_line()
-{
-  if(raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].status == kLinePatternPrinting){
-    return true;
-  } else {
-    return false;
-  }
-}
+//bool is_printing_fast_raster_line()
+//{
+//  if(raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].status == kLinePatternPrinting){
+//    return true;
+//  } else {
+//    return false;
+//  }
+//}
 
 void fast_raster_mode_inc_one_step()
 {
@@ -252,10 +278,10 @@ void fast_raster_mode_inc_one_step()
 }
 
 
-void fast_raster_mode_finish_current_line()
-{
-  raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].status = kLinePatternFinish;
-}
+//void fast_raster_mode_finish_current_line()
+//{
+//  raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].status = kLinePatternFinish;
+//}
 
 
 static float fast_raster_mode_get_steps_per_pixel()
@@ -281,6 +307,12 @@ static uint32_t fast_raster_mode_get_nearest_boundary()
             (float)(fast_raster_mode_get_printing_pixel_idx()) );
 }
 
+/**
+ * @brief Check whether step_idx is on the nearest pixel boundary
+ * 
+ * @return true 
+ * @return false 
+ */
 bool is_on_fast_raster_mode_pixel_boundary()
 {
   if(raster_ctx.line_ctx_array[raster_ctx.printing_line_idx].status != kLinePatternPrinting)
@@ -308,12 +340,14 @@ uint8_t fast_raster_mode_pop_printing_bit()
   LinePatternCtx *current_print_line = &(raster_ctx.line_ctx_array[raster_ctx.printing_line_idx]);
   if(current_print_line->status != kLinePatternPrinting)
   {
+    raster_ctx.is_in_black_pixel = false;
     return 0;
   }
 
   // Exceed pixel count, always return 0
   if(current_print_line->printing_pixel_idx >= current_print_line->pixel_cnt)
   {
+    raster_ctx.is_in_black_pixel = false;
     return 0;
   }
 
@@ -322,6 +356,8 @@ uint8_t fast_raster_mode_pop_printing_bit()
   result &= 0x1; // filter out other bits
 
   current_print_line->printing_pixel_idx += 1;
+  
+  raster_ctx.is_in_black_pixel = result;
     
   return result;
 }
@@ -488,4 +524,9 @@ bool fast_raster_print_DPL_handler()
     }
   }
   return true;
+}
+
+bool fast_raster_print_is_in_black_pixel()
+{
+  return raster_ctx.is_in_black_pixel;
 }

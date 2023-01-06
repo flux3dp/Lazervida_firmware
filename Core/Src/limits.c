@@ -30,6 +30,8 @@
   #define HOMING_AXIS_LOCATE_SCALAR  5.0 // Must be > 1 to ensure limit switch is cleared.
 #endif
 
+extern uint32_t MSA311_polling_ts;
+
 #ifdef ENABLE_DUAL_AXIS
   // Flags for dual axis async limit trigger check.
   #define DUAL_AXIS_CHECK_DISABLE     0  // Must be zero
@@ -368,6 +370,7 @@ void limits_go_home(uint8_t cycle_mask)
         if (sys_rt_exec_alarm) {
           mc_reset(); // Stop motors, if they are running.
           protocol_execute_realtime();
+          MSA311_polling_ts = millis() + 700;
           return;
         } else {
           // Pull-off motion complete. Disable CYCLE_STOP from executing.
@@ -441,6 +444,8 @@ void limits_go_home(uint8_t cycle_mask)
     }
   }
   sys.step_control = STEP_CONTROL_NORMAL_OP; // Return step control to normal operation.
+
+  MSA311_polling_ts = millis() + 700;
 }
 
 

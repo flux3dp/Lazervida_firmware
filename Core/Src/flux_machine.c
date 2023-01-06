@@ -18,8 +18,8 @@ extern system_t sys;
 
 volatile uint8_t host_com_port_open = 0;
 
-volatile cmd_process_locker_t cmd_process_locker;
-volatile cmd_process_unlocker_t cmd_process_unlocker;
+//volatile cmd_process_locker_t cmd_process_locker;
+//volatile cmd_process_unlocker_t cmd_process_unlocker;
 
 bool MSA311_INT_triggered = false;
 uint32_t MSA311_polling_ts = 0;
@@ -56,33 +56,50 @@ void flux_periodic_handling() {
   #endif
   // Detect change of orientation
   if (settings.disable_tilt_detect != true) {
-    if (millis() - MSA311_polling_ts > 200) {
+    if (millis() - MSA311_polling_ts > 120) {
       if (MSA311_working()) {
         Adafruit_MSA311_read();
-        tilt_average = tilt_average * 0.96 + MSA311_get_tilt_y() * 0.04;
-        //printString("[DEBUG: ");
-        //printFloat(MSA311_get_x_data(), 2);
-        //printString(", ");
-        //printFloat(MSA311_get_y_data(), 2);
-        //printString(", ");
-        //printFloat(MSA311_get_z_data(), 2);
-        //printString(", ");
-        //printFloat(tilt_average, 2);
-        //printString("]\n");
+        //tilt_average = tilt_average * 0.96 + MSA311_get_tilt_y() * 0.04;
+        tilt_average = MSA311_get_tilt_y();
         // NOTE: We only care about the change in y-axis
+        //printString("[DEBUG: ");
+        //printFloat(MSA311_get_x_data(), 3);
+        //printString(", ");
+        //printFloat(MSA311_get_y_data(), 3);
+        //printString(", ");
+        //printFloat(MSA311_get_z_data(), 3);
+        //printString(", ");
+        //printFloat(tilt_average, 3);
+        //printString("]\n");
         if (sys.state == STATE_CYCLE) {
           //float tilt = MSA311_get_tilt_y();
           // NOTE: the vibration of motion could introduce error up to 25 degree
           // About 10 degree = 3.14 * 10 / 180 ~ 0.17 rad
           // About 35 degree = 3.14 * 35 / 180 ~ 0.60 rad
-          if (tilt_average - reference_tilt > 0.55 || reference_tilt - tilt_average > 0.55) {
-            bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
-            printString("[DEBUG: ");
-            printFloat(reference_tilt, 3);
-            printString(",");
-            printFloat(tilt_average, 3);
-            printString("]\n");
-            printString("[FLUX: tilt]\n");
+          if (CURRENT_LASER_PWM_POWER >= ((SPINDLE_PWM_MAX_VALUE - SPINDLE_PWM_MIN_VALUE) * 0.03 + SPINDLE_PWM_MIN_VALUE)) {
+            // Danger laser power -> increase sensitivity to tilt
+            if (tilt_average - reference_tilt > settings.tilt_detect_threshold || 
+                reference_tilt - tilt_average > settings.tilt_detect_threshold) {
+              bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+              printString("[DEBUG: ");
+              printFloat(reference_tilt, 3);
+              printString(",");
+              printFloat(tilt_average, 3);
+              printString("]\n");
+              printString("[FLUX: tilt]\n");
+            }
+          } else {
+            // Not emiting much laser -> decrease sensitivity to tilt
+            if (tilt_average - reference_tilt > (settings.tilt_detect_threshold + 0.1) || 
+                reference_tilt - tilt_average > (settings.tilt_detect_threshold + 0.1)) {
+              bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+              printString("[DEBUG: ");
+              printFloat(reference_tilt, 3);
+              printString(",");
+              printFloat(tilt_average, 3);
+              printString("]\n");
+              printString("[FLUX: tilt]\n");
+            }
           }
         }
       }

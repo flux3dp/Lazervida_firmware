@@ -6,21 +6,21 @@
 extern volatile uint8_t host_com_port_open;
 extern float reference_tilt;
 
-typedef union {
-    uint32_t value;
-    struct {
-        uint32_t fast_raster_print :1,
-                 unassigned  :31;
-    };
-} cmd_process_locker_t;
+//typedef union {
+//    uint32_t value;
+//    struct {
+//        uint32_t fast_raster_print :1,
+//                 unassigned  :31;
+//    };
+//} cmd_process_locker_t;
 
-typedef union {
-    uint32_t value;
-    struct {
-        uint32_t fast_raster_print :1,
-                 unassigned  :31;
-    };
-} cmd_process_unlocker_t;
+//typedef union {
+//    uint32_t value;
+//    struct {
+//        uint32_t fast_raster_print :1,
+//                 unassigned  :31;
+//    };
+//} cmd_process_unlocker_t;
 
 typedef enum {
   kOff,
@@ -30,8 +30,8 @@ typedef enum {
   kManual
 } LedMode;
 
-extern volatile cmd_process_locker_t cmd_process_locker;
-extern volatile cmd_process_unlocker_t cmd_process_unlocker;
+//extern volatile cmd_process_locker_t cmd_process_locker;
+//extern volatile cmd_process_unlocker_t cmd_process_unlocker;
 
 extern volatile bool machine_power_on;
 

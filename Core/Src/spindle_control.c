@@ -27,10 +27,9 @@
 #ifdef VARIABLE_SPINDLE
   // For converting software rpm value into actual TIM->CCR reg value
   static float pwm_gradient; // Precalulated value to speed up rpm to PWM conversions.
-  uint16_t cached_laser_pwm;
+  //uint16_t cached_laser_pwm;
 #endif
 
-#define CURRENT_LASER_PWM_POWER (htim3.Instance->CCR3)
 #define LASER_ENABLE_OUTPUT_STATE ((LASER_EN_GPIO_Port->ODR) & LASER_EN_Pin)
 
 void spindle_init()
@@ -131,7 +130,7 @@ void spindle_stop()
 {
   #ifdef VARIABLE_SPINDLE
     // Set CCR3 = 0 (0% duty) and reset LASER_EN Pin
-    cached_laser_pwm = 0;
+    //cached_laser_pwm = 0;
     CURRENT_LASER_PWM_POWER = 0;
     HAL_GPIO_WritePin(LASER_EN_GPIO_Port, LASER_EN_Pin, GPIO_PIN_RESET);
 
@@ -160,11 +159,11 @@ void spindle_stop()
    *                  (0-SPINDLE_PWM_MAX) -> 0-100% duty pwm
    *                  should also consider the TIMx->ARR value
    */
-  void spindle_set_speed(uint16_t pwm_value, bool update_cache)
+  void spindle_set_speed(uint16_t pwm_value)
   {
-    if (update_cache) {
-      cached_laser_pwm = pwm_value;
-    }
+    //if (update_cache) {
+    //  cached_laser_pwm = pwm_value;
+    //}
     CURRENT_LASER_PWM_POWER = pwm_value;
     //SPINDLE_OCR_REGISTER = pwm_value; // Set PWM output level.
     #ifdef SPINDLE_ENABLE_OFF_WITH_ZERO_SPEED
@@ -306,7 +305,7 @@ void spindle_stop()
       if (settings.flags & BITFLAG_LASER_MODE) { 
         if (state == SPINDLE_ENABLE_CCW) { rpm = 0.0; } // TODO: May need to be rpm_min*(100/MAX_SPINDLE_SPEED_OVERRIDE);
       }
-      spindle_set_speed(spindle_compute_pwm_value(rpm), true);
+      spindle_set_speed(spindle_compute_pwm_value(rpm));
     #endif
     #if (defined(USE_SPINDLE_DIR_AS_ENABLE_PIN) && \
         !defined(SPINDLE_ENABLE_OFF_WITH_ZERO_SPEED)) || !defined(VARIABLE_SPINDLE)
@@ -335,7 +334,8 @@ void spindle_stop()
   void spindle_sync(uint8_t state, float rpm)
   {
     if (sys.state == STATE_CHECK_MODE) { return; }
-    protocol_buffer_synchronize(); // Empty planner buffer to ensure spindle is set when programmed.
+    // Block here until planner buffer becomes empty to ensure spindle is set when programmed.
+    protocol_buffer_synchronize(); 
     if (state == SPINDLE_DISABLE) {
       reset_power_24v();
     } else {
