@@ -338,6 +338,15 @@ void USART1_IRQHandler(void)
   /* USER CODE END USART1_IRQn 1 */
 }
 
+void USART3_IRQHandler(void)
+{
+  if (LL_USART_IsEnabledIT_RXNE(USART3) && LL_USART_IsActiveFlag_RXNE(USART3)) {
+    usart3_rx_handler();
+    LL_USART_ClearFlag_RXNE(USART3);
+  }
+}
+
+
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */

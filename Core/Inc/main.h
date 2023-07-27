@@ -76,6 +76,7 @@ extern void MX_DMA_Init(void);
 extern void MX_ADC1_Init(void);
 extern void MX_I2C1_Init(void);
 extern void MX_USART1_UART_Init(void);
+extern void MX_USART3_UART_Init(void);
 extern void MX_TIM3_Init(void);
 extern void MX_TIM1_Init(void);
 extern void MX_TIM2_Init(void);
