@@ -178,7 +178,7 @@ void report_feedback_message(uint8_t message_code)
 // Welcome message
 void report_init_message()
 {
-  printString("\r\nFLUX Lazervida:" LAZERVIDA_FW_VERSION " Ready!\r\n");
+  printString("\r\nFLUX Beam Air Pro:" LAZERVIDA_FW_VERSION " Ready!\r\n");
   printString("Grbl " GRBL_VERSION " ['$' for help]\r\n");
   //printString("\r\nGrbl " GRBL_VERSION " ['$' for help]\r\n");
 }

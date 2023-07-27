@@ -21,6 +21,7 @@
 
 #include "grbl.h"
 #include "debug_serial.h"
+#include "stm32f1xx_hal_usart.h"
 #include "usbd_cdc_if.h"
 
 #define RX_RING_BUFFER (RX_BUFFER_SIZE+1)
@@ -218,4 +219,70 @@ void serial_handle_data(uint8_t data)
 void serial_reset_read_buffer()
 {
   serial_rx_buffer_tail = serial_rx_buffer_head;
+}
+
+
+uint16_t calculate_CRC(uint8_t *frame, uint8_t bufferSize) 
+{
+    uint16_t temp, temp2, flag;
+    temp = 0xFFFF;
+    for (uint8_t i = 0; i < bufferSize; i++)
+    {
+        temp = temp ^ frame[i];
+        for (uint8_t j = 1; j <= 8; j++)
+        {
+            flag = temp & 0x0001;
+            temp >>= 1;
+            if (flag)
+                temp ^= 0xA001;
+        }
+    }
+    // Reverse byte order.
+    temp2 = temp >> 8;
+    temp = (temp << 8) | temp2;
+    temp &= 0xFFFF;
+
+    return temp;
+}
+
+void usart3_write(uint8_t data) {
+  LL_USART_TransmitData8(USART3, data);
+  // Blocking send
+	while (!LL_USART_IsActiveFlag_TXE(USART3));
+    return;
+}
+
+void modbus_query(void)
+{
+    uint8_t query[8] = {0};
+
+    query[0] = 0x02; // Device address
+    query[1] = 0x03; // Function code: Read Holding Registers
+    query[2] = 0x00; // Starting Address High
+    query[3] = 0x02; // Starting Address Low (now set to 0x02)
+    query[4] = 0x00; // Quantity High
+    query[5] = 0x01; // Quantity Low
+
+    uint16_t crc = calculate_CRC(query, 6); // Calculate crc
+
+    query[6] = crc & 0xFF; // crc Low
+    query[7] = (crc >> 8) & 0xFF; // crc High
+
+    // Write query
+    for(int i = 0; i < 8; i++)
+      usart3_write(query[i]);
+}
+
+uint8_t rx3_data;
+uint8_t rx3_buffer[256];
+uint8_t rx3_index = 0;
+
+void usart3_rx_handler(USART_HandleTypeDef *huart)
+{
+  rx3_buffer[rx3_index++] = rx3_data;
+  if (rx3_index >= 9) {
+    printString("Received: ");
+    printInteger((int)(rx3_buffer[6]));
+    printString("\r\n");
+  }
 }

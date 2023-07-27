@@ -82,6 +82,7 @@ void MX_DMA_Init(void);
 void MX_ADC1_Init(void);
 void MX_I2C1_Init(void);
 void MX_USART1_UART_Init(void);
+void MX_USART3_UART_Init(void);
 void MX_TIM3_Init(void);
 void MX_TIM1_Init(void);
 void MX_TIM2_Init(void);
@@ -101,28 +102,16 @@ void MX_TIM4_Init(void);
   */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
-  /* USER CODE END 1 */
-
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
   // =============== FLUX dedicated code ===============
-  #if DEBUG_SERIAL_ON
-  debug_serial_init();
-  debugString("Fw: 0.0.1\n");
-  #endif
-
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   // Force USB host side to eliminate the device from the USB list
   __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -140,40 +129,6 @@ int main(void)
   HAL_GPIO_WritePin(LED_PWM_GPIO_Port, LED_PWM_Pin, GPIO_PIN_SET);
 
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  GPIO_InitStruct.Pin = POWER_BTN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(POWER_BTN_GPIO_Port, &GPIO_InitStruct);
-  uint32_t ts = millis();
-  uint8_t stage = 0;
-  // Polling for pin state change
-  while (1) {
-    if (stage == 0) { // wait for a falling edge
-      if (HAL_GPIO_ReadPin(POWER_BTN_GPIO_Port, POWER_BTN_Pin) == GPIO_PIN_SET) {
-        // do nothing
-      } else {
-        stage = 1;
-        ts = millis();
-      }
-    } else if (stage == 1) { // need a rising edge after a time period
-      if (HAL_GPIO_ReadPin(POWER_BTN_GPIO_Port, POWER_BTN_Pin) == GPIO_PIN_SET) {
-        // check whether rise too early -> back to stage 0
-        if (millis() - ts < 80) {
-          stage = 0;
-        } else {
-          stage = 2;
-          ts = millis();
-        }
-      } else {
-        // do nothing
-      }
-    } else if (stage == 2) {
-      if (millis() - ts > 80) { // wait for 80ms (avoid bouncing) then exit
-        break;
-      }
-    }
-  }
-  machine_power_on = true;
   
   // Set EXTI to detect Power off
   GPIO_InitStruct.Pin = POWER_BTN_Pin;
@@ -206,11 +161,11 @@ int main(void)
   serial_init();   // Setup serial baud rate and interrupts
   eeprom_init();
   settings_init(); // Load Grbl settings from EEPROM
-  stepper_init();  // Configure stepper pins and interrupt timers
   system_init();   // Configure pinout pins and pin-change interrupt
-  
   peripherals_init();
   sensors_init();  // Initialize FLUX's custom sensors
+  
+  MX_USART3_UART_Init();
 
   /* USER CODE END 2 */
 
@@ -218,30 +173,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   memset(sys_probe_position,0,sizeof(sys_probe_position)); // Clear probe position.
   memset(sys_position,0,sizeof(sys_position)); // Clear machine position.
-
-  // Initialize system state.
-  #ifdef FORCE_INITIALIZATION_ALARM
-    // Force Grbl into an ALARM state upon a power-cycle or hard reset.
-    sys.state = STATE_ALARM;
-  #else
-    sys.state = STATE_IDLE;
-  #endif
+  sys.state = STATE_IDLE;
   
-  // Check for power-up and set system alarm if homing is enabled to force homing cycle
-  // by setting Grbl's alarm state. Alarm locks out all g-code commands, including the
-  // startup scripts, but allows access to settings and internal commands. Only a homing
-  // cycle '$H' or kill alarm locks '$X' will disable the alarm.
-  // NOTE: The startup script will run after successful completion of the homing cycle, but
-  // not after disabling the alarm locks. Prevents motion startup blocks from crashing into
-  // things uncontrollably. Very bad.
-  #ifdef HOMING_INIT_LOCK
-    if (bit_istrue(settings.flags,BITFLAG_HOMING_ENABLE)) { sys.state = STATE_ALARM; }
-  #endif
-
-  bool automatic_homing_required = true;
-
-  // Grbl initialization loop upon power-up or a system abort. For the latter, all processes
-  // will return to this loop to be cleanly re-initialized.
   while (1)
   {
     /* USER CODE END WHILE */
@@ -263,10 +196,6 @@ int main(void)
     // Reset Grbl primary systems.
     serial_reset_read_buffer(); // Clear serial read buffer
     gc_init(); // Set g-code parser to default state
-    spindle_init();
-    coolant_init();
-    limits_init();
-    probe_init();
     plan_reset(); // Clear block buffer and planner variables
     st_reset(); // Clear stepper subsystem variables.
     
@@ -275,34 +204,6 @@ int main(void)
     // Sync cleared gcode and planner positions to current system position.
     plan_sync_position();
     gc_sync_position();
-
-    // =========== FLUX dedicated code ==============
-    // Only home automatically once after each power cycle
-    if (automatic_homing_required) {
-      int idx = 0;
-      printString("[MSG: auto homing]\n");
-      uint8_t last_state = sys.state;
-      set_led_mode(kOn);
-      sys.state = STATE_HOMING; // Set system state variable
-      mc_homing_cycle(HOMING_CYCLE_ALL);
-      if (!sys.abort) {  // Execute startup scripts after successful homing.
-        sys.state = STATE_IDLE; // Set to IDLE when complete.
-        st_go_idle(); // Set steppers to the settings idle state before returning.
-      } else {
-        // Restore the system state
-        sys.state = last_state;
-        sys.abort = false;
-      }
-      automatic_homing_required = false;
-      for (idx = 0; idx < N_AXIS; idx++) {
-        sys_position[idx] = 0;
-      }
-      gc_sync_position();
-      plan_sync_position();
-      sys.state = STATE_ALARM;
-    }
-    fast_raster_mode_switch_off(); // reset fast raster context
-    // ==============================================
 
     // Print welcome message. Indicates an initialization has occured at power-up or with a reset.
     report_init_message();
@@ -682,6 +583,53 @@ void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 2 */
 
+}
+
+
+/**
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+void MX_USART3_UART_Init(void)
+{
+  LL_USART_InitTypeDef USART_InitStruct = {0};
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* Peripheral clock enable */
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART3);
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_10; // TX
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_15; // RS485 
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = GPIO_PIN_11; // RX
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  
+  /* USART3 interrupt Init */
+  NVIC_SetPriority(USART3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
+  NVIC_EnableIRQ(USART3_IRQn);
+
+  //USART3 Configuration
+  USART_InitStruct.BaudRate = 9600;
+  USART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
+  USART_InitStruct.StopBits = LL_USART_STOPBITS_1;
+  USART_InitStruct.Parity = LL_USART_PARITY_NONE;
+  USART_InitStruct.TransferDirection = LL_USART_DIRECTION_TX_RX;
+  USART_InitStruct.HardwareFlowControl = LL_USART_HWCONTROL_NONE;
+  USART_InitStruct.OverSampling = LL_USART_OVERSAMPLING_16;
+  LL_USART_Init(USART3, &USART_InitStruct);
+  LL_USART_ConfigAsyncMode(USART3);
+  LL_USART_Enable(USART3);
 }
 
 /** 

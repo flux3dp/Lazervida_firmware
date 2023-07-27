@@ -54,4 +54,6 @@ uint8_t serial_get_rx_buffer_available();
 // Called by USB CDC Data Receive callback
 void serial_handle_data(uint8_t data_byte);
 
+void modbus_query(void);
+
 #endif

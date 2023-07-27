@@ -85,6 +85,7 @@ void protocol_main_loop()
   uint8_t line_flags = 0;
   uint8_t char_counter = 0;
   uint8_t c;
+  uint32_t last_modbus_query = 0;
   for (;;) {
 
     // Process one line of incoming serial data, as the data becomes available. Performs an
@@ -172,20 +173,11 @@ void protocol_main_loop()
     }
 
     // =============== FLUX's dedicated code ===============
-    //if (cmd_process_locker.value) {
-    //  unlock_bits = cmd_process_locker.value & cmd_process_unlocker.value;
-    //  if (unlock_bits) {
-    //    cmd_process_locker.value &= (~unlock_bits);
-    //    cmd_process_unlocker.value &= (~unlock_bits);
-    //  }
-    //  if (cmd_process_locker.value == 0) {
-    //    // Execute the last (postponed) cmd again when unlocked
-    //    resp_status = gc_execute_line(line);
-    //    if (resp_status != STATUS_GCODE_CMD_LOCKED) {
-    //      report_status_message(resp_status);
-    //    }
-    //  }
-    //}
+    
+    if (millis() - last_modbus_query > 5000) {
+      modbus_query();
+    }
+    last_modbus_query = millis();
     // =====================================================
 
 
