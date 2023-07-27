@@ -7,5 +7,9 @@
     "main.h": "c",
     "peripherals.h": "c",
     "protocol.h": "c"
-  }
+  },
+  "cSpell.words": [
+    "GPIO",
+    "usart"
+  ]
 }

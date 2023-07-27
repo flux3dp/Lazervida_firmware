@@ -12,7 +12,7 @@ uint32_t adc_Buffer[1];
  */
 void sensors_init() {
 
-  MX_ADC1_Init();
-  HAL_ADC_Start_DMA(&hadc1, adc_Buffer, sizeof(adc_Buffer)/sizeof(adc_Buffer[0]));
+  // MX_ADC1_Init();
+  // HAL_ADC_Start_DMA(&hadc1, adc_Buffer, sizeof(adc_Buffer)/sizeof(adc_Buffer[0]));
 }
 
