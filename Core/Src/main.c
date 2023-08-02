@@ -112,6 +112,11 @@ int main(void)
 
   /* USER CODE BEGIN SysInit */
   // =============== FLUX dedicated code ===============
+  #if DEBUG_SERIAL_ON
+  debug_serial_init();
+  debugString("Fw: 0.0.1\n");
+  #endif
+  
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   // Force USB host side to eliminate the device from the USB list
   __HAL_RCC_GPIOA_CLK_ENABLE();

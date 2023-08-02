@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define DEBUG_SERIAL_ON 0
+#define DEBUG_SERIAL_ON 1
 
 #if DEBUG_SERIAL_ON
 void debug_serial_init();
