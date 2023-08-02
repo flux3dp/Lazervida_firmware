@@ -78,18 +78,22 @@ void MX_USB_DEVICE_Init(void)
   /* Init Device Library, add supported class and start the library. */
   if (USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS) != USBD_OK)
   {
+    debugString("USBD Init Error\r\n");
     Error_Handler();
   }
   if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_CDC) != USBD_OK)
   {
+    debugString("USBD Register Error\r\n");
     Error_Handler();
   }
   if (USBD_CDC_RegisterInterface(&hUsbDeviceFS, &USBD_Interface_fops_FS) != USBD_OK)
   {
+    debugString("USBD CDC Register Error\r\n");
     Error_Handler();
   }
   if (USBD_Start(&hUsbDeviceFS) != USBD_OK)
   {
+    debugString("USBD Start Error\r\n");
     Error_Handler();
   }
 

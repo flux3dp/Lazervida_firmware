@@ -114,10 +114,11 @@ int main(void)
   // =============== FLUX dedicated code ===============
   #if DEBUG_SERIAL_ON
   debug_serial_init();
-  debugString("Fw: 0.0.1\n");
+  debugString("Beam Air: 0.0.1\n");
   #endif
   
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+
   // Force USB host side to eliminate the device from the USB list
   __HAL_RCC_GPIOA_CLK_ENABLE();
   GPIO_InitStruct.Pin = GPIO_PIN_11 | GPIO_PIN_12;
@@ -127,40 +128,26 @@ int main(void)
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11 | GPIO_PIN_12, GPIO_PIN_RESET);
 
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  GPIO_InitStruct.Pin = LED_PWM_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_PWM_GPIO_Port, &GPIO_InitStruct);
-  HAL_GPIO_WritePin(LED_PWM_GPIO_Port, LED_PWM_Pin, GPIO_PIN_SET);
-
-  __HAL_RCC_GPIOB_CLK_ENABLE();
   
-  // Set EXTI to detect Power off
-  GPIO_InitStruct.Pin = POWER_BTN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(POWER_BTN_GPIO_Port, &GPIO_InitStruct);
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
   // ===================================================
 
   /* USER CODE END SysInit */
 
+  #if DEBUG_SERIAL_ON
+  debugString("Clock Enabled\n");
+  #endif
+  
   /* Initialize all configured peripherals */
   MX_DMA_Init();
   MX_TIM1_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
   get_rcc_clock_config();
-  // Initialize pin mask
-  step_pin_mask_init();
-  dir_pin_mask_init();
-  limit_pin_mask_init();
-  stepper_disable_mask_init();
+  #if DEBUG_SERIAL_ON
+  debugString("RCC Clock inited\n");
+  #endif
 
   __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   // Initialize system upon power-up.
   serial_init();   // Setup serial baud rate and interrupts
@@ -172,6 +159,9 @@ int main(void)
   
   MX_USART3_UART_Init();
 
+  #if DEBUG_SERIAL_ON
+  debugString("other stuff inited\n");
+  #endif
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -751,7 +741,7 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
-
+  debugString("Error_Handler");
   /* USER CODE END Error_Handler_Debug */
 }
 
