@@ -114,22 +114,25 @@ int main(void)
   // =============== FLUX dedicated code ===============
   #if DEBUG_SERIAL_ON
   debug_serial_init();
-  debugString("Beam Air: 0.0.1\n");
+  debugString("Beam Air: 0.0.2\n");
   #endif
+
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
   
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  // Force USB host side to eliminate the device from the USB list
-  __HAL_RCC_GPIOA_CLK_ENABLE();
+  // Force USB host side to eliminate the device from the USB list, by resetting PA12, PA11
   GPIO_InitStruct.Pin = GPIO_PIN_11 | GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11 | GPIO_PIN_12, GPIO_PIN_RESET);
+  HAL_Delay(200);
 
-  __HAL_RCC_GPIOB_CLK_ENABLE();
   
-  // ===================================================
+  // ===============================1====================
 
   /* USER CODE END SysInit */
 
@@ -192,9 +195,6 @@ int main(void)
     serial_reset_read_buffer(); // Clear serial read buffer
     gc_init(); // Set g-code parser to default state
     plan_reset(); // Clear block buffer and planner variables
-    st_reset(); // Clear stepper subsystem variables.
-    
-    reset_power_24v();
 
     // Sync cleared gcode and planner positions to current system position.
     plan_sync_position();
@@ -680,19 +680,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(MSA311_INT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LIMIT_Y_Pin LIMIT_X_Pin */
-  GPIO_InitStruct.Pin = LIMIT_Y_Pin|LIMIT_X_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : DIR_Y_Pin STEP_Y_Pin DIR_X_Pin STEP_X_Pin */
-  GPIO_InitStruct.Pin = DIR_Y_Pin|STEP_Y_Pin|DIR_X_Pin|STEP_X_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
   /*Configure GPIO pin : USB_Detect_Pin */
   GPIO_InitStruct.Pin = USB_Detect_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -706,18 +693,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : POWER_BTN_Pin */
-  GPIO_InitStruct.Pin = POWER_BTN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(POWER_BTN_GPIO_Port, &GPIO_InitStruct);
+  // /* EXTI interrupt init*/
+  // HAL_NVIC_SetPriority(EXTI1_IRQn, 1, 0);
+  // HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI1_IRQn, 1, 0);
-  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+  // HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  // HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
 }
 

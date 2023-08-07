@@ -108,6 +108,8 @@ extern I2C_HandleTypeDef hi2c1;
 #define LIMIT_X_GPIO_Port GPIOA
 #define LIMIT_X_EXTI_IRQn EXTI9_5_IRQn
 #define LASER_PWM_Pin GPIO_PIN_0
+#define USB_ENABLE_Pin GPIO_PIN_0
+#define USB_ENABLE_GPIO_Port GPIOA
 #define LASER_PWM_GPIO_Port GPIOB
 #define DIR_Y_Pin GPIO_PIN_1
 #define DIR_Y_GPIO_Port GPIOB
