@@ -40,6 +40,8 @@ extern "C" {
 #include "stm32f1xx_ll_pwr.h"
 #include "stm32f1xx.h"
 #include "stm32f1xx_ll_gpio.h"
+#include "stm32f1xx_hal_gpio.h"
+#include "stm32f1xx_hal_uart.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -88,7 +90,10 @@ extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c1;
-//extern UART_HandleTypeDef huart1;
+
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart3;
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -127,9 +132,9 @@ extern I2C_HandleTypeDef hi2c1;
 #define STEP_X_GPIO_Port GPIOB
 #define LED_PWM_Pin GPIO_PIN_5
 #define LED_PWM_GPIO_Port GPIOB
-#define I2C1_SCL_Pin GPIO_PIN_6
+#define I2C1_SCL_Pin GPIO_PIN_8
 #define I2C1_SCL_GPIO_Port GPIOB
-#define I2C1_SDA_Pin GPIO_PIN_7
+#define I2C1_SDA_Pin GPIO_PIN_9
 #define I2C1_SDA_GPIO_Port GPIOB
 #define POWER_BTN_Pin GPIO_PIN_9
 #define POWER_BTN_GPIO_Port GPIOB

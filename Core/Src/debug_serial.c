@@ -19,12 +19,11 @@ volatile uint8_t debug_serial_rx_buffer_tail = 0;
 
 #if DEBUG_SERIAL_ON
 void debug_serial_init() {
-    MX_USART1_UART_Init();
-    NVIC_DisableIRQ(USART1_IRQn);
+  // NVIC_DisableIRQ(USART1_IRQn);
   /* === Tx send without interrupt (blocking send) === */
 
   /* ====================== Rx interrupt setup ====================== */
-  //LL_USART_EnableIT_RXNE(USART1);
+  // LL_USART_EnableIT_RXNE(USART1);
   //NVIC_EnableIRQ(USART1_IRQn);
 }
 #endif
@@ -126,9 +125,14 @@ int __io_putchar(int ch)
   HAL_UART_Transmit(&huart1, (uint8_t*)&ch, 1, 1000);
   return ch;
 }
+*/
 int _write(int file,char *ptr, int len)
 {
-  HAL_UART_Transmit(&huart1, (uint8_t*)ptr, len, 1000);
-  return len;
+  
+  // arbitrary timeout 1000
+  HAL_StatusTypeDef status =
+    HAL_UART_Transmit(&huart1, (uint8_t*)ptr, len, 1000);
+
+  // return # of bytes written - as best we can tell
+  return (status == HAL_OK ? len : 0);
 }
-*/

@@ -66,6 +66,7 @@ Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_gpio.c \
 Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_dma.c \
 Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i2c.c \
 Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim.c \
+Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c \
 Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim_ex.c \
 Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_usart.c \
 Core/Src/system_stm32f1xx.c \

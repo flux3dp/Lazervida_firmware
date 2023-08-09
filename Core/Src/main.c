@@ -70,6 +70,10 @@ volatile uint8_t sys_rt_exec_state;   // Global realtime executor bitflag variab
 volatile uint8_t sys_rt_exec_alarm;   // Global realtime executor bitflag variable for setting various alarms.
 volatile uint8_t sys_rt_exec_motion_override; // Global realtime executor bitflag variable for motion-based overrides.
 volatile uint8_t sys_rt_exec_accessory_override; // Global realtime executor bitflag variable for spindle/coolant overrides.
+
+uint8_t uart1_buffer[255];
+uint8_t uart3_buffer[255];
+
 #ifdef DEBUG
   volatile uint8_t sys_rt_exec_debug;
 #endif
@@ -112,10 +116,8 @@ int main(void)
 
   /* USER CODE BEGIN SysInit */
   // =============== FLUX dedicated code ===============
-  #if DEBUG_SERIAL_ON
-  debug_serial_init();
+  MX_USART1_UART_Init();
   debugString("Beam Air: 0.0.2\n");
-  #endif
 
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
@@ -150,21 +152,23 @@ int main(void)
   debugString("RCC Clock inited\n");
   #endif
 
-  __HAL_RCC_GPIOD_CLK_ENABLE();
-
   // Initialize system upon power-up.
   serial_init();   // Setup serial baud rate and interrupts
   eeprom_init();
   settings_init(); // Load Grbl settings from EEPROM
-  system_init();   // Configure pinout pins and pin-change interrupt
-  peripherals_init();
-  sensors_init();  // Initialize FLUX's custom sensors
+  // system_init();   // Configure pinout pins and pin-change interrupt
+  MX_I2C1_Init();
+  I2C_scanning();
+  // sensors_init();  // Initialize FLUX's custom sensors
   
   MX_USART3_UART_Init();
 
-  #if DEBUG_SERIAL_ON
-  debugString("other stuff inited\n");
-  #endif
+  // Enable USART1/USART3 IRQn
+  HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(USART1_IRQn);
+  HAL_NVIC_SetPriority(USART3_IRQn, 0, 1);
+  HAL_NVIC_EnableIRQ(USART3_IRQn);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -172,6 +176,9 @@ int main(void)
   memset(sys_probe_position,0,sizeof(sys_probe_position)); // Clear probe position.
   memset(sys_position,0,sizeof(sys_position)); // Clear machine position.
   sys.state = STATE_IDLE;
+
+  HAL_UART_Receive_IT(&huart1, (uint8_t *)uart1_buffer, 1);
+  HAL_UART_Receive_IT(&huart3, (uint8_t *)uart3_buffer, 9);
   
   while (1)
   {
@@ -251,6 +258,19 @@ void SystemClock_Config(void)
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
+  }
+}
+
+// HAL handle USART1 input
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART1) {
+    HAL_UART_Receive_IT(&huart1, (uint8_t *)uart1_buffer, 1);
+  }
+  if (huart->Instance == USART3) {
+    printf("Wind Speed: %d\n", uart3_buffer[6]);
+    HAL_UART_Receive_IT(&huart3, (uint8_t *)uart3_buffer, 9);
+    uint8_t resistance = 0x40;
   }
 }
 
@@ -523,64 +543,31 @@ void MX_TIM4_Init(void)
 
 }
 
+
+UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart3;
+uint8_t uart1_buffer[255];
+int global_flag;
 /**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
   */
-void MX_USART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  LL_USART_InitTypeDef USART_InitStruct = {0};
-
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  /* Peripheral clock enable */
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
-  
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOA);
-  /**USART1 GPIO Configuration  
-  PA9   ------> USART1_TX
-  PA10   ------> USART1_RX 
-  */
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_9;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_10;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_FLOATING;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /* USART1 interrupt Init */
-  NVIC_SetPriority(USART1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
-  NVIC_EnableIRQ(USART1_IRQn);
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  USART_InitStruct.BaudRate = 115200;
-  USART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
-  USART_InitStruct.StopBits = LL_USART_STOPBITS_1;
-  USART_InitStruct.Parity = LL_USART_PARITY_NONE;
-  USART_InitStruct.TransferDirection = LL_USART_DIRECTION_TX_RX;
-  USART_InitStruct.HardwareFlowControl = LL_USART_HWCONTROL_NONE;
-  USART_InitStruct.OverSampling = LL_USART_OVERSAMPLING_16;
-  LL_USART_Init(USART1, &USART_InitStruct);
-  LL_USART_ConfigAsyncMode(USART1);
-  LL_USART_Enable(USART1);
+void MX_USART1_UART_Init(void) {
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
-
 }
-
-
 /**
   * @brief USART3 Initialization Function
   * @param None
@@ -588,43 +575,27 @@ void MX_USART1_UART_Init(void)
   */
 void MX_USART3_UART_Init(void)
 {
-  LL_USART_InitTypeDef USART_InitStruct = {0};
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 9600;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  // RS485 RE Init
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  /* Peripheral clock enable */
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART3);
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB);
-
-  GPIO_InitStruct.Pin = GPIO_PIN_10; // TX
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = GPIO_PIN_15; // RS485 
+  GPIO_InitStruct.Pin = GPIO_PIN_15;  
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Pull = GPIO_NOPULL; 
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = GPIO_PIN_11; // RX
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-  
-  /* USART3 interrupt Init */
-  NVIC_SetPriority(USART3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
-  NVIC_EnableIRQ(USART3_IRQn);
-
-  //USART3 Configuration
-  USART_InitStruct.BaudRate = 9600;
-  USART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
-  USART_InitStruct.StopBits = LL_USART_STOPBITS_1;
-  USART_InitStruct.Parity = LL_USART_PARITY_NONE;
-  USART_InitStruct.TransferDirection = LL_USART_DIRECTION_TX_RX;
-  USART_InitStruct.HardwareFlowControl = LL_USART_HWCONTROL_NONE;
-  USART_InitStruct.OverSampling = LL_USART_OVERSAMPLING_16;
-  LL_USART_Init(USART3, &USART_InitStruct);
-  LL_USART_ConfigAsyncMode(USART3);
-  LL_USART_Enable(USART3);
+  printf("RS485 RE Inited\n");
 }
 
 /** 

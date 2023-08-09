@@ -245,44 +245,39 @@ uint16_t calculate_CRC(uint8_t *frame, uint8_t bufferSize)
     return temp;
 }
 
-void usart3_write(uint8_t data) {
-  LL_USART_TransmitData8(USART3, data);
-  // Blocking send
-	while (!LL_USART_IsActiveFlag_TXE(USART3));
-    return;
+void usart3_write(uint8_t *data, uint16_t len) {
+  HAL_UART_Transmit(&huart3, data, len, 1000);
+}
+
+void usart1_write(uint8_t *data, uint16_t len) {
+  HAL_UART_Transmit(&huart1, data, len, 1000);
+}
+
+
+void rs485_write_mode() {
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET); 
+}
+
+void rs485_read_mode() {
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET); 
 }
 
 void modbus_query(void)
 {
     uint8_t query[8] = {0};
-
-    query[0] = 0x02; // Device address
+    query[0] = 0x04; // Device address
     query[1] = 0x03; // Function code: Read Holding Registers
     query[2] = 0x00; // Starting Address High
-    query[3] = 0x02; // Starting Address Low (now set to 0x02)
+    query[3] = 0x00; // Starting Address Low (now set to 0x02)
     query[4] = 0x00; // Quantity High
-    query[5] = 0x01; // Quantity Low
-
-    uint16_t crc = calculate_CRC(query, 6); // Calculate crc
-
-    query[6] = crc & 0xFF; // crc Low
-    query[7] = (crc >> 8) & 0xFF; // crc High
-
+    query[5] = 0x02; // Quantity Low
+    uint16_t crc = calculate_CRC(query, 6);
+    query[7] = crc & 0XFF; // Quantity High
+    query[6] = crc >> 8; // Quantity Low
     // Write query
-    for(int i = 0; i < 8; i++)
-      usart3_write(query[i]);
-}
-
-uint8_t rx3_data;
-uint8_t rx3_buffer[256];
-uint8_t rx3_index = 0;
-
-void usart3_rx_handler(USART_HandleTypeDef *huart)
-{
-  rx3_buffer[rx3_index++] = rx3_data;
-  if (rx3_index >= 9) {
-    printString("Received: ");
-    printInteger((int)(rx3_buffer[6]));
-    printString("\r\n");
-  }
+    rs485_write_mode();
+    HAL_Delay(10);
+    // usart1_write(query, 8);
+    usart3_write(query, 8);
+    rs485_read_mode();
 }

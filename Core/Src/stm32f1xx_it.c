@@ -318,32 +318,14 @@ void I2C1_ER_IRQHandler(void)
   /* USER CODE END I2C1_ER_IRQn 1 */
 }
 
-/**
-  * @brief This function handles USART1 global interrupt.
-  */
 void USART1_IRQHandler(void)
 {
-  /* USER CODE BEGIN USART1_IRQn 0 */
-
-  // RX handle single byte at a time
-  if (LL_USART_IsEnabledIT_RXNE(USART1) && LL_USART_IsActiveFlag_RXNE(USART1)) {
-    #if DEBUG_SERIAL_ON
-    debug_serial_rx_handler();
-    #endif
-    LL_USART_ClearFlag_RXNE(USART1);
-  }
-  /* USER CODE END USART1_IRQn 0 */
-  /* USER CODE BEGIN USART1_IRQn 1 */
-
-  /* USER CODE END USART1_IRQn 1 */
+  HAL_UART_IRQHandler(&huart1);
 }
 
 void USART3_IRQHandler(void)
 {
-  if (LL_USART_IsEnabledIT_RXNE(USART3) && LL_USART_IsActiveFlag_RXNE(USART3)) {
-    usart3_rx_handler();
-    LL_USART_ClearFlag_RXNE(USART3);
-  }
+  HAL_UART_IRQHandler(&huart3);
 }
 
 
