@@ -174,10 +174,18 @@ void protocol_main_loop()
 
     // =============== FLUX's dedicated code ===============
     
-    if (millis() - last_modbus_query > 5000) {
+    if (millis() - last_modbus_query > 2000) {
       modbus_query();
+      last_modbus_query = millis();
+      uint8_t resistance = 0x40;
+      HAL_I2C_Mem_Write(&hi2c1, 0x7C, 0, 1, &resistance, 1, 1000);
+      HAL_Delay(1);
+      HAL_I2C_Mem_Write(&hi2c1, 0x7D, 0, 1, &resistance, 1, 1000);
+      HAL_Delay(1);
+      uint8_t wrote_data;
+      HAL_I2C_Mem_Read(&hi2c1, 0x7C, 0, 1, &wrote_data, 1, 1000);
+      printf("Written register %x\n", wrote_data);
     }
-    last_modbus_query = millis();
     // =====================================================
 
 

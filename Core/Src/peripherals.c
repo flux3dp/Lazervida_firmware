@@ -26,40 +26,20 @@ void peripherals_init() {
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(MSA311_INT_GPIO_Port, &GPIO_InitStruct);
-
-  MX_I2C1_Init();
-  if (!Adafruit_MSA311_begin(&hi2c1)) {
-    printString("[ERROR: MSA311 not responding]\n");
-  } else {
-    //_delay_ms(300);
-    //Adafruit_MSA311_read();
-    //reference_tilt = MSA311_get_tilt_y();
-  }
-  enable_interrupt_for_collision();
-
 }
 
 void I2C_scanning() {
   int i;
-  uint8_t Buffer[25] = {0};
   HAL_StatusTypeDef ret;
-
-  /*-[ I2C Bus Scanning ]-*/
-  printString("[Starting I2C Scanning: \r\n");
-  for(i=1; i<128; i++)
+  printf("I2C Scanning...\r\n");
+  for(i=0; i<255; i++)
   {
-    ret = HAL_I2C_IsDeviceReady(&hi2c1, (uint16_t)(i<<1), 3, 5);
-    if (ret != HAL_OK) /* No ACK Received At That Address */
-    {
-      printString(" - ");
-    }
-    else if(ret == HAL_OK)
-    {
-      sprintf((char *)Buffer, "0x%X", i);
-      printString((const char*)Buffer);
+    ret = HAL_I2C_IsDeviceReady(&hi2c1, i, 3, 5);
+    if(ret == HAL_OK) {
+      printf("Discovered %x\n", i >> 1);
     }
   }
-  printString("Done!]\r\n\r\n");
+  printf("I2C Scan Done!\r\n\r\n");
   /*--[ Scanning Done ]--*/
 }
 
