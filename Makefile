@@ -74,30 +74,23 @@ Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
-Core/Src/coolant_control.c \
 Core/Src/cpu_map.c \
 Core/Src/eeprom.c \
 Core/Src/gcode.c \
-Core/Src/jog.c \
 Core/Src/limits.c \
-Core/Src/motion_control.c \
 Core/Src/nuts_bolts.c \
-Core/Src/planner.c \
 Core/Src/print.c \
 Core/Src/probe.c \
 Core/Src/protocol.c \
 Core/Src/report.c \
 Core/Src/serial.c \
 Core/Src/settings.c \
-Core/Src/spindle_control.c \
-Core/Src/stepper.c \
 Core/Src/system.c \
 Core/Src/sensors.c \
 Core/Src/peripherals.c \
 Core/Src/flux_machine.c \
 Core/Src/debug_serial.c \
 Core/Src/lwrb.c \
-Core/Src/fast_raster_print.c \
 Drivers/MSA311/Adafruit_MSA311.c
 
 # ASM sources
