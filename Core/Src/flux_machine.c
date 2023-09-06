@@ -2,10 +2,7 @@
 #include "flux_machine.h"
 #include "main.h"
 #include "sensors.h"
-#include "stepper.h"
 #include "system.h"
-#include "fast_raster_print.h"
-#include "Adafruit_MSA311.h"
 #include <math.h>
 
 #define APP_ADDR                (FLASH_BASE + 0x9000)
@@ -54,67 +51,6 @@ void flux_periodic_handling() {
     ctrl_line_state_change = 0;
   }
   #endif
-  // Detect change of orientation
-  if (settings.disable_tilt_detect != true) {
-    if (millis() - MSA311_polling_ts > 120) {
-      if (MSA311_working()) {
-        Adafruit_MSA311_read();
-        //tilt_average = tilt_average * 0.96 + MSA311_get_tilt_y() * 0.04;
-        tilt_average = MSA311_get_tilt_y();
-        // NOTE: We only care about the change in y-axis
-        //printString("[DEBUG: ");
-        //printFloat(MSA311_get_x_data(), 3);
-        //printString(", ");
-        //printFloat(MSA311_get_y_data(), 3);
-        //printString(", ");
-        //printFloat(MSA311_get_z_data(), 3);
-        //printString(", ");
-        //printFloat(tilt_average, 3);
-        //printString("]\n");
-        if (sys.state == STATE_CYCLE) {
-          //float tilt = MSA311_get_tilt_y();
-          // NOTE: the vibration of motion could introduce error up to 25 degree
-          // About 10 degree = 3.14 * 10 / 180 ~ 0.17 rad
-          // About 35 degree = 3.14 * 35 / 180 ~ 0.60 rad
-          if (CURRENT_LASER_PWM_POWER >= ((SPINDLE_PWM_MAX_VALUE - SPINDLE_PWM_MIN_VALUE) * 0.03 + SPINDLE_PWM_MIN_VALUE)) {
-            // Danger laser power -> increase sensitivity to tilt
-            if (tilt_average - reference_tilt > settings.tilt_detect_threshold || 
-                reference_tilt - tilt_average > settings.tilt_detect_threshold) {
-              bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
-              printString("[DEBUG: ");
-              printFloat(reference_tilt, 3);
-              printString(",");
-              printFloat(tilt_average, 3);
-              printString("]\n");
-              printString("[FLUX: tilt]\n");
-            }
-          } else {
-            // Not emiting much laser -> decrease sensitivity to tilt
-            if (tilt_average - reference_tilt > (settings.tilt_detect_threshold + 0.1) || 
-                reference_tilt - tilt_average > (settings.tilt_detect_threshold + 0.1)) {
-              bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
-              printString("[DEBUG: ");
-              printFloat(reference_tilt, 3);
-              printString(",");
-              printFloat(tilt_average, 3);
-              printString("]\n");
-              printString("[FLUX: tilt]\n");
-            }
-          }
-        }
-      }
-      MSA311_polling_ts = millis();
-    }
-  }
-
-  // Detect sudden active motion (shake or vibrate)
-  if (MSA311_INT_triggered) {
-    printString("[FLUX: act]\n");
-    MSA311_INT_triggered = false;
-    if (sys.state == STATE_CYCLE || is_in_fast_raster_mode()) {
-      bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
-    }
-  }
 
   // Disable motor when idle for 5 seconds
   if (HAL_GPIO_ReadPin(STEP_DISABLE_GPIO_PORT, STEPPERS_DISABLE_PIN) == GPIO_PIN_RESET) {
@@ -174,72 +110,75 @@ void reset_power_24v() {
 }
 
 void set_led_mode(LedMode new_mode) {
-  if (led_state.mode == new_mode) {
-    return;
-  }
-  switch (new_mode) {
-    case kOn:
-      led_state.duty_cycle = 1000;
-      break;
-    case kOff:
-      led_state.duty_cycle = 0;
-      break;
-    case kFlash:
-      led_state.duty_cycle = 1000;
-      break;
-    case kBreath:
-      led_state.duty_cycle = 0;
-      break;
-    case kManual:
-    default:
-      led_state.duty_cycle = 0;
-      new_mode = kManual;
-      break;
-  }
-  led_state.mode = new_mode;
-  CURRENT_LED_PWM_POWER = led_state.duty_cycle;
-  led_state.last_ts = millis();
+  return;
+  // if (led_state.mode == new_mode) {
+  //   return;
+  // }
+  // switch (new_mode) {
+  //   case kOn:
+  //     led_state.duty_cycle = 1000;
+  //     break;
+  //   case kOff:
+  //     led_state.duty_cycle = 0;
+  //     break;
+  //   case kFlash:
+  //     led_state.duty_cycle = 1000;
+  //     break;
+  //   case kBreath:
+  //     led_state.duty_cycle = 0;
+  //     break;
+  //   case kManual:
+  //   default:
+  //     led_state.duty_cycle = 0;
+  //     new_mode = kManual;
+  //     break;
+  // }
+  // led_state.mode = new_mode;
+  // CURRENT_LED_PWM_POWER = led_state.duty_cycle;
+  // led_state.last_ts = millis();
 }
 
 void set_led_power(uint32_t val) {
-  if (led_state.mode == kManual) {
-    CURRENT_LED_PWM_POWER = val;
-  }
+  return;
+  // if (led_state.mode == kManual) {
+  //   CURRENT_LED_PWM_POWER = val;
+  // }
 }
 
 void led_handler(uint32_t new_ts) {
-  switch (led_state.mode) {
-    case kOff:
-      break;
-    case kOn:
-      break;
-    case kFlash:
-      if (new_ts - led_state.last_ts > 600) {
-        if (led_state.duty_cycle == 0) {
-          led_state.duty_cycle = 1000;
-        } else {
-          led_state.duty_cycle = 0;
-        }
-        led_state.last_ts = new_ts;
-        CURRENT_LED_PWM_POWER = led_state.duty_cycle;
-      }
-      break;
-    case kBreath:
-      if (new_ts - led_state.last_ts > 60) {
-        if (led_state.duty_cycle >= 2000) {
-          led_state.duty_cycle = 0;
-        } else {
-          led_state.duty_cycle += 40;
-        }
-        led_state.last_ts = new_ts;
-        CURRENT_LED_PWM_POWER = led_state.duty_cycle <= 1000 ? 
-                                led_state.duty_cycle : 2000 - led_state.duty_cycle;
-      }
-      break;
-    case kManual:
-    default:
-      break;
-  }
+  return;
+  // switch (led_state.mode) {
+  //   case kOff:
+  //     break;
+  //   case kOn:
+  //     break;
+  //   case kFlash:
+  //     if (new_ts - led_state.last_ts > 600) {
+  //       if (led_state.duty_cycle == 0) {
+  //         led_state.duty_cycle = 1000;
+  //       } else {
+  //         led_state.duty_cycle = 0;
+  //       }
+  //       led_state.last_ts = new_ts;
+  //       CURRENT_LED_PWM_POWER = led_state.duty_cycle;
+  //     }
+  //     break;
+  //   case kBreath:
+  //     if (new_ts - led_state.last_ts > 60) {
+  //       if (led_state.duty_cycle >= 2000) {
+  //         led_state.duty_cycle = 0;
+  //       } else {
+  //         led_state.duty_cycle += 40;
+  //       }
+  //       led_state.last_ts = new_ts;
+  //       CURRENT_LED_PWM_POWER = led_state.duty_cycle <= 1000 ? 
+  //                               led_state.duty_cycle : 2000 - led_state.duty_cycle;
+  //     }
+  //     break;
+  //   case kManual:
+  //   default:
+  //     break;
+  // }
 }
 
 void start_firmware_update() {
@@ -278,7 +217,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
         if (!(sys_rt_exec_alarm)) {
           // Check limit pin state. 
           if (limits_get_state()) {
-            mc_reset(); // Initiate system kill.
             system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT); // Indicate hard limit critical event
           }
         }

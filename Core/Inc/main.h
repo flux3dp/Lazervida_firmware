@@ -83,6 +83,7 @@ extern void MX_TIM3_Init(void);
 extern void MX_TIM1_Init(void);
 extern void MX_TIM2_Init(void);
 extern void MX_TIM4_Init(void);
+extern void controlFan(int speed);
 
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
@@ -93,6 +94,8 @@ extern I2C_HandleTypeDef hi2c1;
 
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart3;
+
+extern int windSpeed;
 
 /* USER CODE END EFP */
 
@@ -126,12 +129,6 @@ extern UART_HandleTypeDef huart3;
 #define STEP_EN_INV_GPIO_Port GPIOA
 #define MS1_Pin GPIO_PIN_15
 #define MS1_GPIO_Port GPIOA
-#define DIR_X_Pin GPIO_PIN_3
-#define DIR_X_GPIO_Port GPIOB
-#define STEP_X_Pin GPIO_PIN_4
-#define STEP_X_GPIO_Port GPIOB
-#define LED_PWM_Pin GPIO_PIN_5
-#define LED_PWM_GPIO_Port GPIOB
 #define I2C1_SCL_Pin GPIO_PIN_8
 #define I2C1_SCL_GPIO_Port GPIOB
 #define I2C1_SDA_Pin GPIO_PIN_9
@@ -139,6 +136,14 @@ extern UART_HandleTypeDef huart3;
 #define POWER_BTN_Pin GPIO_PIN_9
 #define POWER_BTN_GPIO_Port GPIOB
 #define POWER_BTN_EXTI_IRQn EXTI9_5_IRQn
+
+#define LEDR_Pin GPIO_PIN_3
+#define LEDR_GPIO_Port GPIOB
+#define LEDG_Pin GPIO_PIN_5
+#define LEDG_GPIO_Port GPIOB
+#define LEDB_Pin GPIO_PIN_4
+#define LEDB_GPIO_Port GPIOB
+#define LED_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

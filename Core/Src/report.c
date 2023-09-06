@@ -28,8 +28,6 @@
 
 #include "grbl.h"
 
-#include "fast_raster_print.h"
-
 
 // Internal report utilities to reduce flash with repetitive tasks turned into functions.
 void report_util_setting_prefix(uint16_t n) { serial_write('$'); print_uint32_base10(n); serial_write('='); }
@@ -332,11 +330,6 @@ void report_gcode_modes()
   }
 
   report_util_gcode_modes_M();
-  switch (gc_state.modal.spindle) {
-    case SPINDLE_ENABLE_CW : serial_write('3'); break;
-    case SPINDLE_ENABLE_CCW : serial_write('4'); break;
-    case SPINDLE_DISABLE : serial_write('5'); break;
-  }
 
   #ifdef ENABLE_M7
     if (gc_state.modal.coolant) { // Note: Multiple coolant states may be active at the same time.
@@ -497,13 +490,7 @@ void report_realtime_status()
   serial_write('<');
   switch (sys.state) {
     case STATE_IDLE: 
-      // =============== FLUX dedicated ==============
-      if (is_in_fast_raster_mode()) {
-        printString("Run"); 
-      // =============================================
-      } else {
-        printString("Idle"); 
-      }
+      printString("Idle"); 
       break;
     case STATE_CYCLE: printString("Run"); break;
     case STATE_HOLD:
@@ -561,37 +548,8 @@ void report_realtime_status()
   #ifdef REPORT_FIELD_BUFFER_STATE
     if (bit_istrue(settings.status_report_mask,BITFLAG_RT_STATUS_BUFFER_STATE)) {
       printString("|Bf:");
-      print_uint8_base10(plan_get_block_buffer_available());
-      serial_write(',');
       print_uint8_base10(serial_get_rx_buffer_available());
     }
-  #endif
-
-  #ifdef USE_LINE_NUMBERS
-    #ifdef REPORT_FIELD_LINE_NUMBERS
-      // Report current line number
-      plan_block_t * cur_block = plan_get_current_block();
-      if (cur_block != NULL) {
-        uint32_t ln = cur_block->line_number;
-        if (ln > 0) {
-          printString("|Ln:");
-          printInteger(ln);
-        }
-      }
-    #endif
-  #endif
-
-  // Report realtime feed speed
-  #ifdef REPORT_FIELD_CURRENT_FEED_SPEED
-    #ifdef VARIABLE_SPINDLE
-      printString("|FS:");
-      printFloat_RateValue(st_get_realtime_rate());
-      serial_write(',');
-      printFloat(sys.spindle_speed,N_DECIMAL_RPMVALUE);
-    #else
-      printString("|F:");
-      printFloat_RateValue(st_get_realtime_rate());
-    #endif      
   #endif
 
   #ifdef REPORT_FIELD_PIN_STATE
@@ -653,29 +611,6 @@ void report_realtime_status()
       print_uint8_base10(sys.r_override);
       serial_write(',');
       print_uint8_base10(sys.spindle_speed_ovr);
-
-      uint8_t sp_state = spindle_get_state();
-      uint8_t cl_state = coolant_get_state();
-      if (sp_state || cl_state) {
-        printString("|A:");
-        if (sp_state) { // != SPINDLE_STATE_DISABLE
-          #ifdef VARIABLE_SPINDLE 
-            #ifdef USE_SPINDLE_DIR_AS_ENABLE_PIN
-              serial_write('S'); // CW
-            #else
-              if (sp_state == SPINDLE_STATE_CW) { serial_write('S'); } // CW
-              else { serial_write('C'); } // CCW
-            #endif
-          #else
-            if (sp_state & SPINDLE_STATE_CW) { serial_write('S'); } // CW
-            else { serial_write('C'); } // CCW
-          #endif
-        }
-        if (cl_state & COOLANT_STATE_FLOOD) { serial_write('F'); }
-        #ifdef ENABLE_M7
-          if (cl_state & COOLANT_STATE_MIST) { serial_write('M'); }
-        #endif
-      }  
     }
   #endif
 

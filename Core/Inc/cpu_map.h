@@ -32,8 +32,8 @@
 #define GPIO_PIN_TYPE uint16_t
 #define GPIO_BIT_TYPE uint8_t
 
-#define STEP_GPIO_PORT STEP_X_GPIO_Port
-#define DIR_GPIO_PORT DIR_X_GPIO_Port
+#define STEP_GPIO_PORT GPIOB
+#define DIR_GPIO_PORT GPIOB
 #define STEP_DISABLE_GPIO_PORT STEP_EN_INV_GPIO_Port
 extern uint16_t mock_spindle_direction_port;
 extern GPIO_PIN_TYPE STEP_MASK;

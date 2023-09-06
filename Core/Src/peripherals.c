@@ -13,19 +13,7 @@
  */
 void peripherals_init() {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  
-  /*Configure GPIO pins : PWR_24V */
-  GPIO_InitStruct.Pin = PWR_24V_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  // MSA311 Accelerometer: I2C and INT pin
-  GPIO_InitStruct.Pin = MSA311_INT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(MSA311_INT_GPIO_Port, &GPIO_InitStruct);
+  return;
 }
 
 void I2C_scanning() {

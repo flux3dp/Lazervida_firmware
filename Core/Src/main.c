@@ -30,7 +30,6 @@
 #include "peripherals.h"
 #include "flux_machine.h"
 #include "debug_serial.h"
-#include "fast_raster_print.h"
 
 #include <stdio.h>
 /* USER CODE END Includes */
@@ -73,6 +72,7 @@ volatile uint8_t sys_rt_exec_accessory_override; // Global realtime executor bit
 
 uint8_t uart1_buffer[255];
 uint8_t uart3_buffer[255];
+int windSpeed;
 
 #ifdef DEBUG
   volatile uint8_t sys_rt_exec_debug;
@@ -113,24 +113,13 @@ int main(void)
 
   /* Configure the system clock */
   SystemClock_Config();
-
+  MX_GPIO_Init();
   /* USER CODE BEGIN SysInit */
   // =============== FLUX dedicated code ===============
   MX_USART1_UART_Init();
-  debugString("Beam Air: 0.0.2\n");
+  debugString("Beam Air Pro: 0.0.4\n");
 
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
   
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  // Force USB host side to eliminate the device from the USB list, by resetting PA12, PA11
-  GPIO_InitStruct.Pin = GPIO_PIN_11 | GPIO_PIN_12;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11 | GPIO_PIN_12, GPIO_PIN_RESET);
   HAL_Delay(200);
 
   
@@ -144,7 +133,13 @@ int main(void)
   
   /* Initialize all configured peripherals */
   MX_DMA_Init();
-  MX_TIM1_Init();
+  // MX_TIM1_Init();
+  MX_TIM2_Init();
+  MX_TIM3_Init();
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2); // RLED
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); // BLED
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); // GLED
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3); // FAN
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
   get_rcc_clock_config();
@@ -157,11 +152,12 @@ int main(void)
   eeprom_init();
   settings_init(); // Load Grbl settings from EEPROM
   // system_init();   // Configure pinout pins and pin-change interrupt
-  MX_I2C1_Init();
-  I2C_scanning();
-  // sensors_init();  // Initialize FLUX's custom sensors
+  // MX_I2C1_Init();
+  sensors_init();  // Initialize FLUX's custom sensors
   
+  debugString("Sensor Inited\n");
   MX_USART3_UART_Init();
+  debugString("Base Enabled!\n");
 
   // Enable USART1/USART3 IRQn
   HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
@@ -179,7 +175,7 @@ int main(void)
 
   HAL_UART_Receive_IT(&huart1, (uint8_t *)uart1_buffer, 1);
   HAL_UART_Receive_IT(&huart3, (uint8_t *)uart3_buffer, 9);
-  
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -201,11 +197,8 @@ int main(void)
     // Reset Grbl primary systems.
     serial_reset_read_buffer(); // Clear serial read buffer
     gc_init(); // Set g-code parser to default state
-    plan_reset(); // Clear block buffer and planner variables
 
     // Sync cleared gcode and planner positions to current system position.
-    plan_sync_position();
-    gc_sync_position();
 
     // Print welcome message. Indicates an initialization has occured at power-up or with a reset.
     report_init_message();
@@ -214,6 +207,10 @@ int main(void)
     protocol_main_loop();
   }
   /* USER CODE END 3 */
+}
+
+void controlFan(int speed) {
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, speed);
 }
 
 /**
@@ -268,7 +265,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     HAL_UART_Receive_IT(&huart1, (uint8_t *)uart1_buffer, 1);
   }
   if (huart->Instance == USART3) {
-    printf("Wind Speed: %d\n", uart3_buffer[6]);
+    windSpeed = uart3_buffer[6];
     HAL_UART_Receive_IT(&huart3, (uint8_t *)uart3_buffer, 9);
     uint8_t resistance = 0x40;
   }
@@ -302,17 +299,20 @@ void MX_ADC1_Init(void)
   hadc1.Init.NbrOfConversion = 1;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
+    printf("ADC config error");
     Error_Handler();
   }
   /** Configure Regular Channel 
   */
-  sConfig.Channel = ADC_CHANNEL_6;
+  sConfig.Channel = ADC_CHANNEL_3;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_41CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
+    printf("ADC1 channel config error");
     Error_Handler();
   }
+  HAL_ADC_MspInit(&hadc1);
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
@@ -413,14 +413,15 @@ void MX_TIM2_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM2_Init 1 */
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 15;
+  htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 0;
+  htim2.Init.Period = 1000;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -432,15 +433,36 @@ void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM2;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
+  HAL_TIM_MspPostInit(&htim2);
 
 }
 
@@ -452,22 +474,32 @@ void MX_TIM2_Init(void)
 void MX_TIM3_Init(void)
 {
 
-  /* USER CODE BEGIN TIM3_Init 0 */
+  /* USER CODE BEGIN TIM2_Init 0 */
 
-  /* USER CODE END TIM3_Init 0 */
+  /* USER CODE END TIM2_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
-  /* USER CODE BEGIN TIM3_Init 1 */
+  /* USER CODE BEGIN TIM2_Init 1 */
 
-  /* USER CODE END TIM3_Init 1 */
+  /* USER CODE END TIM2_Init 1 */
   htim3.Instance = TIM3;
   htim3.Init.Prescaler = 0;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 1000;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
@@ -480,14 +512,13 @@ void MX_TIM3_Init(void)
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
     Error_Handler();
   }
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -495,7 +526,6 @@ void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 2 */
   HAL_TIM_MspPostInit(&htim3);
-
 }
 
 /**
@@ -625,52 +655,25 @@ void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, PWR_24V_Pin|LASER_EN_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, DIR_Y_Pin|STEP_Y_Pin|DIR_X_Pin|STEP_X_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, STEP_EN_INV_Pin|MS1_Pin, GPIO_PIN_SET);
-
-  /*Configure GPIO pins : PWR_24V_Pin LASER_EN_Pin */
-  GPIO_InitStruct.Pin = PWR_24V_Pin|LASER_EN_Pin;
+  // Force USB host side to eliminate the device from the USB list, by resetting PA12, PA11
+  GPIO_InitStruct.Pin = GPIO_PIN_11 | GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : MSA311_INT_Pin */
-  GPIO_InitStruct.Pin = MSA311_INT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(MSA311_INT_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : USB_Detect_Pin */
-  GPIO_InitStruct.Pin = USB_Detect_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  HAL_GPIO_Init(USB_Detect_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : STEP_EN_INV_Pin MS1_Pin */
-  GPIO_InitStruct.Pin = STEP_EN_INV_Pin|MS1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  // /* EXTI interrupt init*/
-  // HAL_NVIC_SetPriority(EXTI1_IRQn, 1, 0);
-  // HAL_NVIC_EnableIRQ(EXTI1_IRQn);
-
-  // HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
-  // HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
-
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11 | GPIO_PIN_12, GPIO_PIN_RESET);
+  
+    // Config KNOB_IN Old (PB13)
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  // GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 }
 
 /* USER CODE BEGIN 4 */

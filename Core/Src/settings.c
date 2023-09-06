@@ -310,11 +310,9 @@ uint8_t settings_store_global_setting(uint16_t parameter, float value) {
       case 1: settings.stepper_idle_lock_time = int_value; break;
       case 2:
         settings.step_invert_mask = int_value;
-        st_generate_step_dir_invert_masks(); // Regenerate step and direction port invert masks.
         break;
       case 3:
         settings.dir_invert_mask = int_value;
-        st_generate_step_dir_invert_masks(); // Regenerate step and direction port invert masks.
         break;
       case 4: // Reset to ensure change. Immediate re-init may cause problems.
         if (int_value) { settings.flags |= BITFLAG_INVERT_ST_ENABLE; }
@@ -360,8 +358,8 @@ uint8_t settings_store_global_setting(uint16_t parameter, float value) {
       case 25: settings.homing_seek_rate = value; break;
       case 26: settings.homing_debounce_delay = int_value; break;
       case 27: settings.homing_pulloff = value; break;
-      case 30: settings.rpm_max = value; spindle_init(); break; // Re-initialize spindle rpm calibration
-      case 31: settings.rpm_min = value; spindle_init(); break; // Re-initialize spindle rpm calibration
+      case 30: settings.rpm_max = value; break; // Re-initialize spindle rpm calibration
+      case 31: settings.rpm_min = value; break; // Re-initialize spindle rpm calibration
       case 32:
         #ifdef VARIABLE_SPINDLE
           if (int_value) { settings.flags |= BITFLAG_LASER_MODE; }

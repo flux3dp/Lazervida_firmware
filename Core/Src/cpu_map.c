@@ -49,45 +49,11 @@ void get_rcc_clock_config() {
 }
 
 void step_pin_mask_init() {
-  int i = 0;
-  int axis = 0;
-
-  STEP_PIN[X_AXIS] = STEP_X_Pin;
-  STEP_PIN[Y_AXIS] = STEP_Y_Pin;
-
-  STEP_MASK = 0;
-  for (axis = 0; axis < N_AXIS; axis++) {
-    STEP_MASK |= STEP_PIN[axis];
-    STEP_BIT[axis] = 0;
-    for (i = 0; i < 16; i++) {
-      if ((STEP_PIN[axis] >> i) & 0x1) {
-        break;
-      }
-      STEP_BIT[axis] += 1;
-    }
-    // NOTE: if STEP_BIT[x] == 16 -> invalid
-  }
+  return;
 }
 
 void dir_pin_mask_init() {
-  int i = 0;
-  int axis = 0;
-
-  DIRECTION_PIN[X_AXIS] = DIR_X_Pin;
-  DIRECTION_PIN[Y_AXIS] = DIR_Y_Pin;
-
-  DIRECTION_MASK = 0;
-  for (axis = 0; axis < N_AXIS; axis++) {
-    DIRECTION_MASK |= DIRECTION_PIN[axis];
-    DIRECTION_BIT[axis] = 0;
-    for (i = 0; i < 16; i++) {
-      if ((DIRECTION_PIN[axis] >> i) & 0x1) {
-        break;
-      }
-      DIRECTION_BIT[axis] += 1;
-    }
-    // NOTE: if DIRECTION_BIT[x] == 16 -> invalid
-  }
+  return;
 }
 
 void limit_pin_mask_init() {

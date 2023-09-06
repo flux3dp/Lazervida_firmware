@@ -109,16 +109,6 @@
 // Modal Group G13: Control mode
 #define CONTROL_MODE_EXACT_PATH 0 // G61 (Default: Must be zero)
 
-// Modal Group M7: Spindle control
-#define SPINDLE_DISABLE 0 // M5 (Default: Must be zero)
-#define SPINDLE_ENABLE_CW   PL_COND_FLAG_SPINDLE_CW // M3 (NOTE: Uses planner condition bit flag)
-#define SPINDLE_ENABLE_CCW  PL_COND_FLAG_SPINDLE_CCW // M4 (NOTE: Uses planner condition bit flag)
-
-// Modal Group M8: Coolant control
-#define COOLANT_DISABLE 0 // M9 (Default: Must be zero)
-#define COOLANT_FLOOD_ENABLE  PL_COND_FLAG_COOLANT_FLOOD // M8 (NOTE: Uses planner condition bit flag)
-#define COOLANT_MIST_ENABLE   PL_COND_FLAG_COOLANT_MIST  // M7 (NOTE: Uses planner condition bit flag)
-
 // Modal Group G8: Tool length offset
 #define TOOL_LENGTH_OFFSET_CANCEL 0 // G49 (Default: Must be zero)
 #define TOOL_LENGTH_OFFSET_ENABLE_DYNAMIC 1 // G43.1

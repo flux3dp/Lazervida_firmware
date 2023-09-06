@@ -22,7 +22,6 @@
 #include "main.h"
 
 #include "flux_machine.h"
-#include "fast_raster_print.h"
 
 
 void system_init()
@@ -161,7 +160,6 @@ uint8_t system_execute_line(char *line)
           // is idle and ready, regardless of alarm locks. This is mainly to keep things
           // simple and consistent.
           if ( sys.state == STATE_CHECK_MODE ) {
-            mc_reset();
             report_feedback_message(MESSAGE_DISABLED);
           } else {
             if (sys.state) { return(STATUS_IDLE_ERROR); } // Requires no alarm mode.
@@ -196,7 +194,6 @@ uint8_t system_execute_line(char *line)
           set_led_mode(kOn);
           // =======================================================
           if (line[2] == 0) {
-            mc_homing_cycle(HOMING_CYCLE_ALL);
           #ifdef HOMING_SINGLE_AXIS_COMMANDS
             } else if (line[3] == 0) {
               switch (line[2]) {
@@ -209,12 +206,8 @@ uint8_t system_execute_line(char *line)
           } else { return(STATUS_INVALID_STATEMENT); }
           if (!sys.abort) {  // Execute startup scripts after successful homing.
             sys.state = STATE_IDLE; // Set to IDLE when complete.
-            st_go_idle(); // Set steppers to the settings idle state before returning.
             if (line[2] == 0) { system_execute_startup(line); }
           }
-          // ================= FLUX dedicated code =================
-          fast_raster_mode_switch_off(); // force exit fast raster mode after each homing
-          // =======================================================
           break;
         case 'S' : // Puts Grbl to sleep [IDLE/ALARM]
           if ((line[2] != 'L') || (line[3] != 'P') || (line[4] != 0)) { return(STATUS_INVALID_STATEMENT); }
@@ -250,7 +243,6 @@ uint8_t system_execute_line(char *line)
             default: return(STATUS_INVALID_STATEMENT);
           }
           report_feedback_message(MESSAGE_RESTORE_DEFAULTS);
-          mc_reset(); // Force reset to ensure settings are initialized correctly.
           break;
         case 'N' : // Startup lines. [IDLE/ALARM]
           if ( line[++char_counter] == 0 ) { // Print startup lines
