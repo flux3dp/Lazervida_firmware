@@ -95,38 +95,20 @@ extern I2C_HandleTypeDef hi2c1;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart3;
 
-extern int windSpeed;
+extern int wind_speed;
 
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
 #define PWR_24V_Pin GPIO_PIN_0
 #define PWR_24V_GPIO_Port GPIOA
-#define MSA311_INT_Pin GPIO_PIN_1
-#define MSA311_INT_GPIO_Port GPIOA
-#define MSA311_INT_EXTI_IRQn EXTI1_IRQn
-#define LASER_EN_Pin GPIO_PIN_2
-#define LASER_EN_GPIO_Port GPIOA
-#define LIMIT_Y_Pin GPIO_PIN_5
-#define LIMIT_Y_GPIO_Port GPIOA
-#define LIMIT_Y_EXTI_IRQn EXTI9_5_IRQn
 #define DETECT_3V3_Pin GPIO_PIN_6
 #define DETECT_3V3_GPIO_Port GPIOA
-#define LIMIT_X_Pin GPIO_PIN_7
-#define LIMIT_X_GPIO_Port GPIOA
 #define LIMIT_X_EXTI_IRQn EXTI9_5_IRQn
-#define LASER_PWM_Pin GPIO_PIN_0
 #define USB_ENABLE_Pin GPIO_PIN_0
 #define USB_ENABLE_GPIO_Port GPIOA
-#define LASER_PWM_GPIO_Port GPIOB
-#define DIR_Y_Pin GPIO_PIN_1
-#define DIR_Y_GPIO_Port GPIOB
-#define STEP_Y_Pin GPIO_PIN_2
-#define STEP_Y_GPIO_Port GPIOB
 #define USB_Detect_Pin GPIO_PIN_10
 #define USB_Detect_GPIO_Port GPIOB
-#define STEP_EN_INV_Pin GPIO_PIN_8
-#define STEP_EN_INV_GPIO_Port GPIOA
 #define MS1_Pin GPIO_PIN_15
 #define MS1_GPIO_Port GPIOA
 #define I2C1_SCL_Pin GPIO_PIN_8

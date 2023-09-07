@@ -290,40 +290,6 @@ uint8_t gc_execute_line(const char *line)
       // ===================== FLUX's dedicated commands =======================
       case 'B':
         switch(int_value) {
-          case 1:
-            set_stepper_MS1();
-            return (STATUS_OK);
-          case 2:
-            reset_stepper_MS1();
-            return (STATUS_OK);
-          case 3:
-            HAL_GPIO_WritePin(STEP_EN_INV_GPIO_Port, STEP_EN_INV_Pin, GPIO_PIN_SET);
-            return (STATUS_OK);
-          case 4:
-            HAL_GPIO_WritePin(STEP_EN_INV_GPIO_Port, STEP_EN_INV_Pin, GPIO_PIN_RESET);
-            return (STATUS_OK);
-          case 5:
-            HAL_GPIO_WritePin(LASER_EN_GPIO_Port, LASER_EN_Pin, GPIO_PIN_SET);
-            return (STATUS_OK);
-          case 6:
-            HAL_GPIO_WritePin(LASER_EN_GPIO_Port, LASER_EN_Pin, GPIO_PIN_RESET);
-            return (STATUS_OK);
-          case 7:
-            word_bit = WORD_S; 
-            gc_block.values.s = 1000;
-            break;
-          case 8:
-            word_bit = WORD_S; 
-            gc_block.values.s = 0;
-            return (STATUS_OK);
-          case 9:
-            print_uint32_base10(DETECT_3V3_VALUE);
-            printString("\n");
-            return (STATUS_OK);
-          case 10:
-            print_uint8_base2_ndigit(limits_get_state(), 2);
-            printString("\n");
-            return (STATUS_OK);
           case 11:
             set_power_24v();
             return (STATUS_OK);
@@ -337,13 +303,6 @@ uint8_t gc_execute_line(const char *line)
             start_firmware_update();
             return (STATUS_INVALID_STATEMENT);
           // ============ Debug cmds =================
-          case 101:
-            printString("Tilt value: ");
-            printFloat(tilt_average, 3);
-            printString(", ");
-            printFloat(MSA311_get_tilt_y(), 3);
-            printString("\n");
-            return (STATUS_OK);
           /*
           case 101:
             print_uint8_base2_ndigit(MSA311_get_partid(), 8);

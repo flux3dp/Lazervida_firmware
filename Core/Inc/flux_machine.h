@@ -37,8 +37,6 @@ extern volatile bool machine_power_on;
 
 void flux_periodic_handling();
 
-void set_stepper_MS1();
-void reset_stepper_MS1();
 void set_power_24v();
 void reset_power_24v();
 void set_led_mode(LedMode mode);

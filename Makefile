@@ -77,7 +77,6 @@ Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
 Core/Src/cpu_map.c \
 Core/Src/eeprom.c \
 Core/Src/gcode.c \
-Core/Src/limits.c \
 Core/Src/nuts_bolts.c \
 Core/Src/print.c \
 Core/Src/probe.c \

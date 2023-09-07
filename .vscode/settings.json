@@ -6,7 +6,17 @@
     "fast_raster_print.h": "c",
     "main.h": "c",
     "peripherals.h": "c",
-    "protocol.h": "c"
+    "protocol.h": "c",
+    "grbl.h": "c",
+    "stm32f1xx_hal_usart.h": "c",
+    "stm32f1xx_hal_rcc.h": "c",
+    "array": "c",
+    "span": "c",
+    "string": "c",
+    "string_view": "c",
+    "vector": "c",
+    "probe.h": "c",
+    "eeprom.h": "c"
   },
   "cSpell.words": [
     "GPIO",

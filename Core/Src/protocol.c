@@ -25,7 +25,6 @@
 #include "debug_serial.h"
 #include "flux_machine.h"
 #include "sensors.h"
-#include "Adafruit_MSA311.h"
 
 // Define line flags. Includes comment type tracking and line overflow detection.
 #define LINE_FLAG_OVERFLOW bit(0)
@@ -47,16 +46,6 @@ int outputTag = 0;
 */
 void protocol_main_loop()
 {
-
-  // Perform some machine checks to make sure everything is good to go.
-  #ifdef CHECK_LIMITS_AT_INIT
-    if (bit_istrue(settings.flags, BITFLAG_HARD_LIMIT_ENABLE)) {
-      if (limits_get_state()) {
-        sys.state = STATE_ALARM; // Ensure alarm state is active.
-        report_feedback_message(MESSAGE_CHECK_LIMITS);
-      }
-    }
-  #endif
   // Check for and report alarm state after a reset, error, or an initial power up.
   // NOTE: Sleep mode disables the stepper drivers and position can't be guaranteed.
   // Re-initialize the sleep state as an ALARM mode to ensure user homes or acknowledges.
@@ -179,14 +168,22 @@ void protocol_main_loop()
       modbus_query();
       last_modbus_query = millis();
       outputTag += 1;
-      int knobVal = adc_Buffer[0] * 1000 / 4096;
-      printf("Manual Strength %d, Wind Speed %d\n", knobVal, windSpeed);
-      int targetWindSpeed = knobVal * 255 / 1000;
-      int fanCompensation = targetWindSpeed - windSpeed;
-      controlFan(max(min(1000, knobVal + fanCompensation),0)); // Set fan 0~1000
-      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, knobVal);
-      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, knobVal);
-      __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, knobVal / 3);
+      int knob_val = adc_Buffer[0] * 1000 / 4096;
+      printf("Knob %d, Wind Speed %d\n", knob_val, wind_speed);
+      int target_speed = knob_val * 255 / 1000;
+      int fanCompensation = target_speed - wind_speed;
+      printString("Target ");
+      printInteger(target_speed);
+      printString(", Measure ");
+      printInteger(wind_speed);
+      int fanSpeed = max(min(1000, knob_val + fanCompensation),0);
+      printString(", Fan Strength ");
+      printInteger(fanSpeed);
+      printString("\n");
+      controlFan(1000 - fanSpeed); // Set fan 0~1000
+      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, knob_val);
+      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, knob_val);
+      __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, knob_val / 3);
 
       // I2c write example
       // uint8_t resistance = 0x40;
@@ -340,61 +337,12 @@ void protocol_exec_rt_system()
 
       // State check for allowable states for hold methods.
       if (!(sys.state & (STATE_ALARM | STATE_CHECK_MODE))) {
-      
-        // If in CYCLE or JOG states, immediately initiate a motion HOLD.
-        if (sys.state & (STATE_CYCLE | STATE_JOG)) {
-          if (!(sys.suspend & (SUSPEND_MOTION_CANCEL | SUSPEND_JOG_CANCEL))) { // Block, if already holding.
-            if (sys.state == STATE_JOG) { // Jog cancelled upon any hold event, except for sleeping.
-              if (!(rt_exec & EXEC_SLEEP)) { sys.suspend |= SUSPEND_JOG_CANCEL; } 
-            }
-          }
-        }
         // If IDLE, Grbl is not in motion. Simply indicate suspend state and hold is complete.
         if (sys.state == STATE_IDLE) { sys.suspend = SUSPEND_HOLD_COMPLETE; }
-
-        // Execute and flag a motion cancel with deceleration and return to idle. Used primarily by probing cycle
-        // to halt and cancel the remainder of the motion.
-        if (rt_exec & EXEC_MOTION_CANCEL) {
-          // MOTION_CANCEL only occurs during a CYCLE, but a HOLD and SAFETY_DOOR may been initiated beforehand
-          // to hold the CYCLE. Motion cancel is valid for a single planner block motion only, while jog cancel
-          // will handle and clear multiple planner block motions.
-          if (!(sys.state & STATE_JOG)) { sys.suspend |= SUSPEND_MOTION_CANCEL; } // NOTE: State is STATE_CYCLE.
-        }
-
-        // Execute a feed hold with deceleration, if required. Then, suspend system.
-        if (rt_exec & EXEC_FEED_HOLD) {
-          // Block SAFETY_DOOR, JOG, and SLEEP states from changing to HOLD state.
-          if (!(sys.state & (STATE_SAFETY_DOOR | STATE_JOG | STATE_SLEEP))) { sys.state = STATE_HOLD; }
-        }
 
         // Execute a safety door stop with a feed hold and disable spindle/coolant.
         // NOTE: Safety door differs from feed holds by stopping everything no matter state, disables powered
         // devices (spindle/coolant), and blocks resuming until switch is re-engaged.
-        if (rt_exec & EXEC_SAFETY_DOOR) {
-          // If jogging, block safety door methods until jog cancel is complete. Just flag that it happened.
-          if (!(sys.suspend & SUSPEND_JOG_CANCEL)) {
-            // Check if the safety re-opened during a restore parking motion only. Ignore if
-            // already retracting, parked or in sleep state.
-            if (sys.state == STATE_SAFETY_DOOR) {
-              if (sys.suspend & SUSPEND_INITIATE_RESTORE) { // Actively restoring
-                sys.suspend &= ~(SUSPEND_RETRACT_COMPLETE | SUSPEND_INITIATE_RESTORE | SUSPEND_RESTORE_COMPLETE);
-                sys.suspend |= SUSPEND_RESTART_RETRACT;
-              }
-            }
-            if (sys.state != STATE_SLEEP) {
-              if (sys.state != STATE_SAFETY_DOOR) {
-                // NOT EXPECT to enter this case in normal case, 
-                // Might be triggered by ctrl cmd 0x84
-                report_feedback_message(MESSAGE_SAFETY_DOOR_AJAR);
-              }
-              sys.state = STATE_SAFETY_DOOR; 
-            }
-          }
-          // NOTE: This flag doesn't change when the door closes, unlike sys.state. Ensures any parking motions
-          // are executed if the door switch closes and the state returns to HOLD.
-          sys.suspend |= SUSPEND_SAFETY_DOOR_AJAR;
-        }
-        
       }
 
       if (rt_exec & EXEC_SLEEP) {
@@ -410,21 +358,6 @@ void protocol_exec_rt_system()
       // Block if called at same time as the hold commands: feed hold, motion cancel, and safety door.
       // Ensures auto-cycle-start doesn't resume a hold without an explicit user-input.
       if (!(rt_exec & (EXEC_FEED_HOLD | EXEC_MOTION_CANCEL | EXEC_SAFETY_DOOR))) {
-        // =============== START OF UNREACHABLE CODE (lazervida) ===================
-        // Resume door state when parking motion has retracted and door has been closed.
-        if ((sys.state == STATE_SAFETY_DOOR) && !(sys.suspend & SUSPEND_SAFETY_DOOR_AJAR)) {
-          if (sys.suspend & SUSPEND_RESTORE_COMPLETE) {
-            sys.state = STATE_IDLE; // Set to IDLE to immediately resume the cycle.
-          } else if (sys.suspend & SUSPEND_RETRACT_COMPLETE) {
-            // Flag to re-energize powered components and restore original position, if disabled by SAFETY_DOOR.
-            // NOTE: For a safety door to resume, the switch must be closed, as indicated by HOLD state, and
-            // the retraction execution is complete, which implies the initial feed hold is not active. To
-            // restore normal operation, the restore procedures must be initiated by the following flag. Once,
-            // they are complete, it will call CYCLE_START automatically to resume and exit the suspend.
-            sys.suspend |= SUSPEND_INITIATE_RESTORE;
-          }
-        }
-        // =============== END OF UNREACHABLE CODE ===================
 
         // Cycle start only when IDLE or when a hold is complete and ready to resume.
         if ((sys.state == STATE_IDLE) || ((sys.state & STATE_HOLD) && (sys.suspend & SUSPEND_HOLD_COMPLETE))) {
@@ -435,10 +368,6 @@ void protocol_exec_rt_system()
             sys.step_control = STEP_CONTROL_NORMAL_OP; // Restore step control to normal operation
             sys.suspend = SUSPEND_DISABLE; // Break suspend state.
             sys.state = STATE_IDLE;
-            // =================== FLUX's dedicated handling =================
-            //Adafruit_MSA311_read();
-            //reference_tilt = MSA311_get_tilt_y();
-            // =================== End of FLUX's dedicated handling =================
           }
         }
       }

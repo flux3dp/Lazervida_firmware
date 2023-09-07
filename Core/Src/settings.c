@@ -308,12 +308,6 @@ uint8_t settings_store_global_setting(uint16_t parameter, float value) {
         if (int_value < 3) { return(STATUS_SETTING_STEP_PULSE_MIN); }
         settings.pulse_microseconds = int_value; break;
       case 1: settings.stepper_idle_lock_time = int_value; break;
-      case 2:
-        settings.step_invert_mask = int_value;
-        break;
-      case 3:
-        settings.dir_invert_mask = int_value;
-        break;
       case 4: // Reset to ensure change. Immediate re-init may cause problems.
         if (int_value) { settings.flags |= BITFLAG_INVERT_ST_ENABLE; }
         else { settings.flags &= ~BITFLAG_INVERT_ST_ENABLE; }
@@ -327,37 +321,11 @@ uint8_t settings_store_global_setting(uint16_t parameter, float value) {
         else { settings.flags &= ~BITFLAG_INVERT_PROBE_PIN; }
         probe_configure_invert_mask(false);
         break;
-      case 10: settings.status_report_mask = int_value; break;
-      case 11: settings.junction_deviation = value; break;
-      case 12: settings.arc_tolerance = value; break;
       case 13:
         if (int_value) { settings.flags |= BITFLAG_REPORT_INCHES; }
         else { settings.flags &= ~BITFLAG_REPORT_INCHES; }
         system_flag_wco_change(); // Make sure WCO is immediately updated.
         break;
-      case 20:
-        if (int_value) {
-          if (bit_isfalse(settings.flags, BITFLAG_HOMING_ENABLE)) { return(STATUS_SOFT_LIMIT_ERROR); }
-          settings.flags |= BITFLAG_SOFT_LIMIT_ENABLE;
-        } else { settings.flags &= ~BITFLAG_SOFT_LIMIT_ENABLE; }
-        break;
-      case 21:
-        if (int_value) { settings.flags |= BITFLAG_HARD_LIMIT_ENABLE; }
-        else { settings.flags &= ~BITFLAG_HARD_LIMIT_ENABLE; }
-        limits_init(); // Re-init to immediately change. NOTE: Nice to have but could be problematic later.
-        break;
-      case 22:
-        if (int_value) { settings.flags |= BITFLAG_HOMING_ENABLE; }
-        else {
-          settings.flags &= ~BITFLAG_HOMING_ENABLE;
-          settings.flags &= ~BITFLAG_SOFT_LIMIT_ENABLE; // Force disable soft-limits.
-        }
-        break;
-      case 23: settings.homing_dir_mask = int_value; break;
-      case 24: settings.homing_feed_rate = value; break;
-      case 25: settings.homing_seek_rate = value; break;
-      case 26: settings.homing_debounce_delay = int_value; break;
-      case 27: settings.homing_pulloff = value; break;
       case 30: settings.rpm_max = value; break; // Re-initialize spindle rpm calibration
       case 31: settings.rpm_min = value; break; // Re-initialize spindle rpm calibration
       case 32:
@@ -384,40 +352,4 @@ void settings_init() {
     settings_restore(SETTINGS_RESTORE_ALL); // Force restore all EEPROM data.
     report_grbl_settings();
   }
-}
-
-
-// Returns step pin mask according to Grbl internal axis indexing.
-uint16_t get_step_pin_mask(uint8_t axis_idx)
-{
-  if ( axis_idx == X_AXIS ) { return(STEP_PIN[X_AXIS]); }
-  if ( axis_idx == Y_AXIS ) { return(STEP_PIN[Y_AXIS]); }
-#if N_AXIS > 2
-  #error "Z_AXIS STEP_PIN not defined"
-#endif
-  return 0;
-}
-
-
-// Returns direction pin mask according to Grbl internal axis indexing.
-uint16_t get_direction_pin_mask(uint8_t axis_idx)
-{
-  if ( axis_idx == X_AXIS ) { return(DIRECTION_PIN[X_AXIS]); }
-  if ( axis_idx == Y_AXIS ) { return(DIRECTION_PIN[Y_AXIS]); }
-#if N_AXIS > 2
-  #error "Z_AXIS DIRECTION_PIN not defined"
-#endif
-  return 0;
-}
-
-
-// Returns limit pin mask according to Grbl internal axis indexing.
-uint16_t get_limit_pin_mask(uint8_t axis_idx)
-{
-  if ( axis_idx == X_AXIS ) { return(LIMIT_PIN[X_AXIS]); }
-  if ( axis_idx == Y_AXIS ) { return(LIMIT_PIN[Y_AXIS]); }
-#if N_AXIS > 2
-  #error "Z_AXIS LIMIT_PIN not defined"
-#endif
-  return 0;
 }

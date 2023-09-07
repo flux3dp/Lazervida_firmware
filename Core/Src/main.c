@@ -72,7 +72,7 @@ volatile uint8_t sys_rt_exec_accessory_override; // Global realtime executor bit
 
 uint8_t uart1_buffer[255];
 uint8_t uart3_buffer[255];
-int windSpeed;
+int wind_speed;
 
 #ifdef DEBUG
   volatile uint8_t sys_rt_exec_debug;
@@ -265,7 +265,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     HAL_UART_Receive_IT(&huart1, (uint8_t *)uart1_buffer, 1);
   }
   if (huart->Instance == USART3) {
-    windSpeed = uart3_buffer[6];
+    wind_speed = uart3_buffer[6];
     HAL_UART_Receive_IT(&huart3, (uint8_t *)uart3_buffer, 9);
     uint8_t resistance = 0x40;
   }

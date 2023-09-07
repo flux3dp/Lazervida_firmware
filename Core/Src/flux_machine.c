@@ -18,11 +18,6 @@ volatile uint8_t host_com_port_open = 0;
 //volatile cmd_process_locker_t cmd_process_locker;
 //volatile cmd_process_unlocker_t cmd_process_unlocker;
 
-bool MSA311_INT_triggered = false;
-uint32_t MSA311_polling_ts = 0;
-float reference_tilt = 3.07; // in unit of rad. Should be initialized when power up
-float tilt_average = 3.07;
-
 volatile bool machine_power_on = false;
 
 uint32_t last_motor_active = 0;
@@ -51,20 +46,6 @@ void flux_periodic_handling() {
     ctrl_line_state_change = 0;
   }
   #endif
-
-  // Disable motor when idle for 5 seconds
-  if (HAL_GPIO_ReadPin(STEP_DISABLE_GPIO_PORT, STEPPERS_DISABLE_PIN) == GPIO_PIN_RESET) {
-    if (sys.state == STATE_IDLE || sys.state == STATE_ALARM) {
-      // do nothing
-    } else {
-      last_motor_active = millis();
-    }
-    if (millis() - last_motor_active > 5000) {
-      HAL_GPIO_WritePin(STEP_DISABLE_GPIO_PORT, STEPPERS_DISABLE_PIN, GPIO_PIN_SET);
-      // disable both motor and laser
-      reset_power_24v();
-    }
-  }
 
   // Led status control
   switch (sys.state) {
@@ -206,22 +187,6 @@ void start_firmware_update() {
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   switch (GPIO_Pin) {
-    case GPIO_PIN_1:
-      if (sys.state != STATE_HOLD) {
-        MSA311_INT_triggered = true;
-      }
-      break;
-    case LIMIT_X_Pin:
-    case LIMIT_Y_Pin:
-      if (sys.state != STATE_ALARM) {  // Ignore if already in alarm state. 
-        if (!(sys_rt_exec_alarm)) {
-          // Check limit pin state. 
-          if (limits_get_state()) {
-            system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT); // Indicate hard limit critical event
-          }
-        }
-      }
-      break;
     case GPIO_PIN_9: // POWER BTN
       if (machine_power_on) {
         // Software reset (enter power off state)
