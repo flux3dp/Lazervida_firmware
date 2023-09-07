@@ -23,25 +23,12 @@
 
 settings_t settings;
 
-#if N_AXIS <= Z_AXIS 
-fake_z_axis_info_t fake_z_axis_info;
-#endif
-
 const settings_t defaults = {\
     .pulse_microseconds = DEFAULT_STEP_PULSE_MICROSECONDS,
     .stepper_idle_lock_time = DEFAULT_STEPPER_IDLE_LOCK_TIME,
-    .step_invert_mask = DEFAULT_STEPPING_INVERT_MASK,
-    .dir_invert_mask = DEFAULT_DIRECTION_INVERT_MASK,
     .status_report_mask = DEFAULT_STATUS_REPORT_MASK,
     .junction_deviation = DEFAULT_JUNCTION_DEVIATION,
     .arc_tolerance = DEFAULT_ARC_TOLERANCE,
-    .rpm_max = DEFAULT_SPINDLE_RPM_MAX,
-    .rpm_min = DEFAULT_SPINDLE_RPM_MIN,
-    .homing_dir_mask = DEFAULT_HOMING_DIR_MASK,
-    .homing_feed_rate = DEFAULT_HOMING_FEED_RATE,
-    .homing_seek_rate = DEFAULT_HOMING_SEEK_RATE,
-    .homing_debounce_delay = DEFAULT_HOMING_DEBOUNCE_DELAY,
-    .homing_pulloff = DEFAULT_HOMING_PULLOFF,
     .flags = (DEFAULT_REPORT_INCHES << BIT_REPORT_INCHES) | \
              (DEFAULT_LASER_MODE << BIT_LASER_MODE) | \
              (DEFAULT_INVERT_ST_ENABLE << BIT_INVERT_ST_ENABLE) | \
@@ -50,32 +37,7 @@ const settings_t defaults = {\
              (DEFAULT_SOFT_LIMIT_ENABLE << BIT_SOFT_LIMIT_ENABLE) | \
              (DEFAULT_INVERT_LIMIT_PINS << BIT_INVERT_LIMIT_PINS) | \
              (DEFAULT_INVERT_PROBE_PIN << BIT_INVERT_PROBE_PIN),
-    .steps_per_mm[X_AXIS] = DEFAULT_X_STEPS_PER_MM,
-    .steps_per_mm[Y_AXIS] = DEFAULT_Y_STEPS_PER_MM,
-    #if N_AXIS > 2 && defined(Z_AXIS)
-    .steps_per_mm[Z_AXIS] = DEFAULT_Z_STEPS_PER_MM,
-    #endif
-    .max_rate[X_AXIS] = DEFAULT_X_MAX_RATE,
-    .max_rate[Y_AXIS] = DEFAULT_Y_MAX_RATE,
-    #if N_AXIS > 2 && defined(Z_AXIS)
-    .max_rate[Z_AXIS] = DEFAULT_Z_MAX_RATE,
-    #endif
-    .acceleration[X_AXIS] = DEFAULT_X_ACCELERATION,
-    .acceleration[Y_AXIS] = DEFAULT_Y_ACCELERATION,
-    #if N_AXIS > 2 && defined(Z_AXIS)
-    .acceleration[Z_AXIS] = DEFAULT_Z_ACCELERATION,
-    #endif
-    .max_travel[X_AXIS] = (-DEFAULT_X_MAX_TRAVEL),
-    .max_travel[Y_AXIS] = (-DEFAULT_Y_MAX_TRAVEL),
-    #if N_AXIS > 2 && defined(Z_AXIS)
-    .max_travel[Z_AXIS] = (-DEFAULT_Z_MAX_TRAVEL)
-    #endif
-
     // ======= FLUX's dedicated =======
-    // Added since v11
-    .disable_tilt_detect = DEFAULT_TILT_DETCTION_MUTE,
-    // Added since v12
-    .tilt_detect_threshold = DEFAULT_TILT_DETECTION_THRESHOLD,
 };
 
 
@@ -102,11 +64,7 @@ void settings_store_build_info(char *line)
 // Method to store coord data parameters into EEPROM
 void settings_write_coord_data(uint8_t coord_select, float *coord_data)
 {
-  #ifdef FORCE_BUFFER_SYNC_DURING_EEPROM_WRITE
-    protocol_buffer_synchronize();
-  #endif
-  uint32_t addr = coord_select*(sizeof(float)*N_AXIS+1) + EEPROM_ADDR_PARAMETERS;
-  memcpy_to_eeprom_with_checksum(addr,(char*)coord_data, sizeof(float)*N_AXIS);
+  return;
 }
 
 
@@ -125,15 +83,6 @@ void settings_restore(uint8_t restore_flag) {
   if (restore_flag & SETTINGS_RESTORE_DEFAULTS) {    
     settings = defaults;
     write_global_settings();
-  }
-
-  if (restore_flag & SETTINGS_RESTORE_PARAMETERS) {
-    uint8_t idx;
-    float coord_data[N_AXIS];
-    memset(&coord_data, 0, sizeof(coord_data));
-    for (idx=0; idx <= SETTING_INDEX_NCOORD; idx++) { 
-      settings_write_coord_data(idx, coord_data); 
-    }
   }
 
   if (restore_flag & SETTINGS_RESTORE_STARTUP_LINES) {
@@ -197,13 +146,6 @@ uint8_t settings_read_build_info(char *line)
 // Read selected coordinate data from EEPROM. Updates pointed coord_data value.
 uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data)
 {
-  uint32_t addr = coord_select*(sizeof(float)*N_AXIS+1) + EEPROM_ADDR_PARAMETERS;
-  if (!(memcpy_from_eeprom_with_checksum((char*)coord_data, addr, sizeof(float)*N_AXIS))) {
-    // Reset with default zero vector
-    clear_vector_float(coord_data);
-    settings_write_coord_data(coord_select,coord_data);
-    return(false);
-  }
   return(true);
 }
 
@@ -212,22 +154,7 @@ uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data)
 uint8_t read_global_settings() {
   // Check version-byte of eeprom
   uint8_t version = eeprom_get_char(0);
-  if (version == SETTINGS_VERSION_10) {
-    // Read settings-record and check checksum
-    if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL_GRBL_SETTINGS, sizeof(settings_v10_t)))) {
-      return(false);
-    }
-    settings.disable_tilt_detect = DEFAULT_TILT_DETCTION_MUTE;  // since V11
-    settings.tilt_detect_threshold = DEFAULT_TILT_DETECTION_THRESHOLD; // since V12
-    write_global_settings();
-  } else if (version == SETTINGS_VERSION_11) {
-    // Read settings-record and check checksum
-    if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL_GRBL_SETTINGS, sizeof(settings_v11_t)))) {
-      return(false);
-    }
-    settings.tilt_detect_threshold = DEFAULT_TILT_DETECTION_THRESHOLD; // since V12
-    write_global_settings();
-  } else if (version == SETTINGS_VERSION_LATEST) {
+  if (version == SETTINGS_VERSION_LATEST) {
     // Read settings-record and check checksum
     if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL_GRBL_SETTINGS, sizeof(settings_t)))) {
       return(false);
@@ -248,57 +175,14 @@ uint8_t settings_store_global_setting(uint16_t parameter, float value) {
     //uint8_t int_value = trunc(value);
     switch(parameter) {
       case 259:
-        settings.disable_tilt_detect = value ? true : false;
+        // settings.disable_tilt_detect = value ? true : false;
         break;
       case 260:
         // valid value range: 0 ~ 3
-        settings.tilt_detect_threshold = value > 3 ? 3 : (value < 0 ? 0 : value);
+        // settings.tilt_detect_threshold = value > 3 ? 3 : (value < 0 ? 0 : value);
         break;
       default:
         break;
-    }
-  } else if (parameter >= AXIS_SETTINGS_START_VAL) { // $100 ~ $255
-    // Store axis configuration. Axis numbering sequence set by AXIS_SETTING defines.
-    // NOTE: Ensure the setting index corresponds to the report.c settings printout.
-    parameter -= AXIS_SETTINGS_START_VAL;
-    uint8_t set_idx = 0;
-    while (set_idx < AXIS_N_SETTINGS) {
-      if (parameter < N_AXIS) {
-        // Valid axis setting found.
-        switch (set_idx) {
-          case 0:
-            #ifdef MAX_STEP_RATE_HZ
-              if (value*settings.max_rate[parameter] > (MAX_STEP_RATE_HZ*60.0)) { return(STATUS_MAX_STEP_RATE_EXCEEDED); }
-            #endif
-            settings.steps_per_mm[parameter] = value;
-            break;
-          case 1:
-            #ifdef MAX_STEP_RATE_HZ
-              if (value*settings.steps_per_mm[parameter] > (MAX_STEP_RATE_HZ*60.0)) {  return(STATUS_MAX_STEP_RATE_EXCEEDED); }
-            #endif
-            settings.max_rate[parameter] = value;
-            break;
-          case 2: settings.acceleration[parameter] = value*60*60; break; // Convert to mm/min^2 for grbl internal use.
-          case 3: settings.max_travel[parameter] = -value; break;  // Store as negative for grbl internal use.
-        }
-        break; // Exit while-loop after setting has been configured and proceed to the EEPROM write call.
-      #if N_AXIS <= Z_AXIS 
-      } else if (parameter == Z_AXIS) {
-        // NOTE: Fake Z_AXIS settings
-        switch (set_idx) {
-          case 0: fake_z_axis_info.steps_per_mm = value; break;
-          case 1: fake_z_axis_info.max_rate = value; break;
-          case 2: fake_z_axis_info.acceleration = value*60*60; break; // Convert to mm/min^2 for grbl internal use.
-          case 3: fake_z_axis_info.max_travel = -value; break;  // Store as negative for grbl internal use.
-        }
-        break; // Exit while-loop after setting has been configured and proceed to the EEPROM write call.
-      #endif
-      } else {
-        set_idx++;
-        // If axis index greater than N_AXIS or setting index greater than number of axis settings, error out.
-        if ((parameter < AXIS_SETTINGS_INCREMENT) || (set_idx == AXIS_N_SETTINGS)) { return(STATUS_INVALID_STATEMENT); }
-        parameter -= AXIS_SETTINGS_INCREMENT;
-      }
     }
   } else { // $0 ~ $99
     // Store non-axis Grbl settings
@@ -308,33 +192,10 @@ uint8_t settings_store_global_setting(uint16_t parameter, float value) {
         if (int_value < 3) { return(STATUS_SETTING_STEP_PULSE_MIN); }
         settings.pulse_microseconds = int_value; break;
       case 1: settings.stepper_idle_lock_time = int_value; break;
-      case 4: // Reset to ensure change. Immediate re-init may cause problems.
-        if (int_value) { settings.flags |= BITFLAG_INVERT_ST_ENABLE; }
-        else { settings.flags &= ~BITFLAG_INVERT_ST_ENABLE; }
-        break;
-      case 5: // Reset to ensure change. Immediate re-init may cause problems.
-        if (int_value) { settings.flags |= BITFLAG_INVERT_LIMIT_PINS; }
-        else { settings.flags &= ~BITFLAG_INVERT_LIMIT_PINS; }
-        break;
-      case 6: // Reset to ensure change. Immediate re-init may cause problems.
-        if (int_value) { settings.flags |= BITFLAG_INVERT_PROBE_PIN; }
-        else { settings.flags &= ~BITFLAG_INVERT_PROBE_PIN; }
-        probe_configure_invert_mask(false);
-        break;
       case 13:
         if (int_value) { settings.flags |= BITFLAG_REPORT_INCHES; }
         else { settings.flags &= ~BITFLAG_REPORT_INCHES; }
         system_flag_wco_change(); // Make sure WCO is immediately updated.
-        break;
-      case 30: settings.rpm_max = value; break; // Re-initialize spindle rpm calibration
-      case 31: settings.rpm_min = value; break; // Re-initialize spindle rpm calibration
-      case 32:
-        #ifdef VARIABLE_SPINDLE
-          if (int_value) { settings.flags |= BITFLAG_LASER_MODE; }
-          else { settings.flags &= ~BITFLAG_LASER_MODE; }
-        #else
-          return(STATUS_SETTING_DISABLED_LASER);
-        #endif
         break;
       default:
         return(STATUS_INVALID_STATEMENT);

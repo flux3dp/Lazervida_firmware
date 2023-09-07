@@ -62,8 +62,6 @@ TIM_HandleTypeDef htim4;
 /* USER CODE BEGIN PV */
 // Declare system global variable structure
 system_t sys;
-int32_t sys_position[N_AXIS];      // Real-time machine (aka home) position vector in steps.
-int32_t sys_probe_position[N_AXIS]; // Last probe position in machine coordinates and steps.
 volatile uint8_t sys_probe_state;   // Probing state value.  Used to coordinate the probing cycle with stepper ISR.
 volatile uint8_t sys_rt_exec_state;   // Global realtime executor bitflag variable for state management. See EXEC bitmasks.
 volatile uint8_t sys_rt_exec_alarm;   // Global realtime executor bitflag variable for setting various alarms.
@@ -169,8 +167,6 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  memset(sys_probe_position,0,sizeof(sys_probe_position)); // Clear probe position.
-  memset(sys_position,0,sizeof(sys_position)); // Clear machine position.
   sys.state = STATE_IDLE;
 
   HAL_UART_Receive_IT(&huart1, (uint8_t *)uart1_buffer, 1);
@@ -185,9 +181,6 @@ int main(void)
     uint8_t prior_state = sys.state;
     memset(&sys, 0, sizeof(system_t)); // Clear system struct variable.
     sys.state = prior_state;
-    sys.f_override = DEFAULT_FEED_OVERRIDE;  // Set to 100%
-    sys.r_override = DEFAULT_RAPID_OVERRIDE; // Set to 100%
-    sys.spindle_speed_ovr = DEFAULT_SPINDLE_SPEED_OVERRIDE; // Set to 100%
     sys_probe_state = 0;
     sys_rt_exec_state = 0;
     sys_rt_exec_alarm = 0;

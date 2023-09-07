@@ -37,16 +37,7 @@ static void report_util_gcode_modes_G() { printString(" G"); }
 static void report_util_gcode_modes_M() { printString(" M"); }
 // static void report_util_comment_line_feed() { serial_write(')'); report_util_line_feed(); }
 static void report_util_axis_values(float *axis_value) {
-  uint8_t idx;
-  for (idx=0; idx<N_AXIS; idx++) {
-    printFloat_CoordValue(axis_value[idx]);
-    if (idx < (N_AXIS-1)) { serial_write(','); }
-  }
-  #if N_AXIS <= Z_AXIS
-    // Fake Z-axis
-    serial_write(',');
-    printFloat_CoordValue(0.0);
-  #endif
+  return;
 }
 
 /*
@@ -193,8 +184,6 @@ void report_grbl_settings() {
   // Print Grbl settings.
   report_util_uint8_setting(0,settings.pulse_microseconds);
   report_util_uint8_setting(1,settings.stepper_idle_lock_time);
-  report_util_uint8_setting(2,settings.step_invert_mask);
-  report_util_uint8_setting(3,settings.dir_invert_mask);
   report_util_uint8_setting(4,bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE));
   report_util_uint8_setting(5,bit_istrue(settings.flags,BITFLAG_INVERT_LIMIT_PINS));
   report_util_uint8_setting(6,bit_istrue(settings.flags,BITFLAG_INVERT_PROBE_PIN));
@@ -205,43 +194,12 @@ void report_grbl_settings() {
   report_util_uint8_setting(20,bit_istrue(settings.flags,BITFLAG_SOFT_LIMIT_ENABLE));
   report_util_uint8_setting(21,bit_istrue(settings.flags,BITFLAG_HARD_LIMIT_ENABLE));
   report_util_uint8_setting(22,bit_istrue(settings.flags,BITFLAG_HOMING_ENABLE));
-  report_util_uint8_setting(23,settings.homing_dir_mask);
-  report_util_float_setting(24,settings.homing_feed_rate,N_DECIMAL_SETTINGVALUE);
-  report_util_float_setting(25,settings.homing_seek_rate,N_DECIMAL_SETTINGVALUE);
-  report_util_uint8_setting(26,settings.homing_debounce_delay);
-  report_util_float_setting(27,settings.homing_pulloff,N_DECIMAL_SETTINGVALUE);
-  report_util_float_setting(30,settings.rpm_max,N_DECIMAL_RPMVALUE);
-  report_util_float_setting(31,settings.rpm_min,N_DECIMAL_RPMVALUE);
   #ifdef VARIABLE_SPINDLE
     report_util_uint8_setting(32,bit_istrue(settings.flags,BITFLAG_LASER_MODE));
   #else
     report_util_uint8_setting(32,0);
   #endif
   // Print axis settings
-  uint8_t idx, set_idx;
-  uint8_t val = AXIS_SETTINGS_START_VAL;
-  for (set_idx=0; set_idx<AXIS_N_SETTINGS; set_idx++) {
-    for (idx=0; idx<N_AXIS; idx++) {
-      switch (set_idx) {
-        case 0: report_util_float_setting(val+idx,settings.steps_per_mm[idx],N_DECIMAL_SETTINGVALUE); break;
-        case 1: report_util_float_setting(val+idx,settings.max_rate[idx],N_DECIMAL_SETTINGVALUE); break;
-        case 2: report_util_float_setting(val+idx,settings.acceleration[idx]/(60*60),N_DECIMAL_SETTINGVALUE); break;
-        case 3: report_util_float_setting(val+idx,-settings.max_travel[idx],N_DECIMAL_SETTINGVALUE); break;
-      }
-    }
-    // NOTE: Fake Z-axis settings
-    switch (set_idx) {
-      case 0: report_util_float_setting(val+Z_AXIS, fake_z_axis_info.steps_per_mm, N_DECIMAL_SETTINGVALUE); break;
-      case 1: report_util_float_setting(val+Z_AXIS, fake_z_axis_info.max_rate, N_DECIMAL_SETTINGVALUE); break;
-      case 2: report_util_float_setting(val+Z_AXIS, fake_z_axis_info.acceleration/(60*60), N_DECIMAL_SETTINGVALUE); break;
-      case 3: report_util_float_setting(val+Z_AXIS, -fake_z_axis_info.max_travel, N_DECIMAL_SETTINGVALUE); break;
-    }
-
-    val += AXIS_SETTINGS_INCREMENT;
-  }
-  // FLUX's dedicated settings
-  report_util_uint8_setting(259, settings.disable_tilt_detect);
-  report_util_float_setting(260, settings.tilt_detect_threshold, 2);
 }
 
 
@@ -250,44 +208,14 @@ void report_grbl_settings() {
 // These values are retained until Grbl is power-cycled, whereby they will be re-zeroed.
 void report_probe_parameters()
 {
-  // Report in terms of machine position.
-  printString("[PRB:");
-  float print_position[N_AXIS];
-  system_convert_array_steps_to_mpos(print_position,sys_probe_position);
-  report_util_axis_values(print_position);
-  serial_write(':');
-  print_uint8_base10(sys.probe_succeeded);
-  report_util_feedback_line_feed();
+  return;
 }
 
 
 // Prints Grbl NGC parameters (coordinate offsets, probing)
 void report_ngc_parameters()
 {
-  float coord_data[N_AXIS];
-  uint8_t coord_select;
-  for (coord_select = 0; coord_select <= SETTING_INDEX_NCOORD; coord_select++) {
-    if (!(settings_read_coord_data(coord_select,coord_data))) {
-      report_status_message(STATUS_SETTING_READ_FAIL);
-      return;
-    }
-    printString("[G");
-    switch (coord_select) {
-      case 6: printString("28"); break;
-      case 7: printString("30"); break;
-      default: print_uint8_base10(coord_select+54); break; // G54-G59
-    }
-    serial_write(':');
-    report_util_axis_values(coord_data);
-    report_util_feedback_line_feed();
-  }
-  printString("[G92:"); // Print G92,G92.1 which are not persistent in memory
-  report_util_axis_values(gc_state.coord_offset);
-  report_util_feedback_line_feed();
-  printString("[TLO:"); // Print tool length offset value
-  printFloat_CoordValue(gc_state.tool_length_offset);
-  report_util_feedback_line_feed();
-  report_probe_parameters(); // Print probe parameters. Not persistent in memory.
+  return;
 }
 
 
@@ -303,9 +231,6 @@ void report_gcode_modes()
   }
 
   report_util_gcode_modes_G();
-  print_uint8_base10(gc_state.modal.coord_select+54);
-
-  report_util_gcode_modes_G();
   print_uint8_base10(gc_state.modal.plane_select+17);
 
   report_util_gcode_modes_G();
@@ -313,9 +238,6 @@ void report_gcode_modes()
 
   report_util_gcode_modes_G();
   print_uint8_base10(gc_state.modal.distance+90);
-
-  report_util_gcode_modes_G();
-  print_uint8_base10(94-gc_state.modal.feed_rate);
 
   if (gc_state.modal.program_flow) {
     report_util_gcode_modes_M();
@@ -338,8 +260,6 @@ void report_gcode_modes()
     } else { report_util_gcode_modes_M(); serial_write('9'); }
   #else
     report_util_gcode_modes_M();
-    if (gc_state.modal.coolant) { serial_write('8'); }
-    else { serial_write('9'); }
   #endif
 
   #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
@@ -348,12 +268,6 @@ void report_gcode_modes()
       print_uint8_base10(56);
     }
   #endif
-  
-  printString(" T");
-  print_uint8_base10(gc_state.tool);
-
-  printString(" F");
-  printFloat_RateValue(gc_state.feed_rate);
 
   #ifdef VARIABLE_SPINDLE
     printString(" S");
@@ -481,10 +395,6 @@ void report_echo_line_received(char *line)
 void report_realtime_status()
 {
   uint8_t idx;
-  int32_t current_position[N_AXIS]; // Copy current state of the system position variable
-  memcpy(current_position,sys_position,sizeof(sys_position));
-  float print_position[N_AXIS];
-  system_convert_array_steps_to_mpos(print_position,current_position);
 
   // Report current machine state and sub-states
   serial_write('<');
@@ -522,27 +432,6 @@ void report_realtime_status()
       break;
     case STATE_SLEEP: printString("Sleep"); break;
   }
-
-  float wco[N_AXIS];
-  if (bit_isfalse(settings.status_report_mask,BITFLAG_RT_STATUS_POSITION_TYPE) ||
-      (sys.report_wco_counter == 0) ) {
-    for (idx=0; idx< N_AXIS; idx++) {
-      // Apply work coordinate offsets and tool length offset to current position.
-      wco[idx] = gc_state.coord_system[idx]+gc_state.coord_offset[idx];
-      if (idx == TOOL_LENGTH_OFFSET_AXIS) { wco[idx] += gc_state.tool_length_offset; }
-      if (bit_isfalse(settings.status_report_mask,BITFLAG_RT_STATUS_POSITION_TYPE)) {
-        print_position[idx] -= wco[idx];
-      }
-    }
-  }
-
-  // Report machine position
-  if (bit_istrue(settings.status_report_mask,BITFLAG_RT_STATUS_POSITION_TYPE)) {
-    printString("|MPos:");
-  } else {
-    printString("|WPos:");
-  }
-  report_util_axis_values(print_position);
 
   // Returns planner and serial read buffer states.
   #ifdef REPORT_FIELD_BUFFER_STATE

@@ -47,17 +47,12 @@
 #include "gcode.h"
 #include "limits.h"
 #include "print.h"
-#include "probe.h"
 #include "protocol.h"
 #include "report.h"
 #include "serial.h"
 
 // ---------------------------------------------------------------------------------------
 // COMPILE-TIME ERROR CHECKING OF DEFINE VALUES:
-
-#ifndef HOMING_CYCLE_0
-  #error "Required HOMING_CYCLE_0 not defined."
-#endif
 
 #if defined(USE_SPINDLE_DIR_AS_ENABLE_PIN) && !defined(VARIABLE_SPINDLE)
   #error "USE_SPINDLE_DIR_AS_ENABLE_PIN may only be used with VARIABLE_SPINDLE enabled"

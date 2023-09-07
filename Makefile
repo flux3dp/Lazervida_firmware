@@ -79,7 +79,6 @@ Core/Src/eeprom.c \
 Core/Src/gcode.c \
 Core/Src/nuts_bolts.c \
 Core/Src/print.c \
-Core/Src/probe.c \
 Core/Src/protocol.c \
 Core/Src/report.c \
 Core/Src/serial.c \
