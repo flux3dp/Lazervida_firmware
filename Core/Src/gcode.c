@@ -277,64 +277,6 @@ uint8_t gc_execute_line(const char *line)
           case 14:
             start_firmware_update();
             return (STATUS_INVALID_STATEMENT);
-          case 101:
-            print_uint8_base2_ndigit(MSA311_get_partid(), 8);
-            printString("\n");
-            return (STATUS_OK);
-          case 102:
-            print_uint32_base2_ndigit(Adafruit_MSA311_getDataRate(), 4);
-            printString("\n");
-            return (STATUS_OK);
-          case 103:
-            print_uint32_base2_ndigit(Adafruit_MSA311_getPowerMode(), 2);
-            printString("\n");
-            return (STATUS_OK);
-          case 104:
-            print_uint32_base2_ndigit(Adafruit_MSA311_getBandwidth(), 2);
-            printString("\n");
-            return (STATUS_OK);
-          case 105:
-            print_uint32_base2_ndigit(Adafruit_MSA311_getRange(), 2);
-            printString("\n");
-            return (STATUS_OK);
-          case 106:
-            print_uint8_base2_ndigit(Adafruit_MSA311_getMotionInterruptStatus(), 8);
-            printString("\n");
-            return (STATUS_OK);
-          case 107:
-            MSA311_setActiveInterruptThresh(10);
-            return (STATUS_OK);
-          case 108:
-            MSA311_setActiveInterruptThresh(100);
-            return (STATUS_OK);
-          case 109:
-            MSA311_setActiveInterruptThresh(150);
-            return (STATUS_OK);
-          case 110:
-            MSA311_setActiveInterruptThresh(200);
-            return (STATUS_OK);
-          case 111:
-            MSA311_setActiveInterruptThresh(90);
-            return (STATUS_OK);
-          case 112:
-            print_uint8_base10(MSA311_getActiveInterruptThresh());
-            return (STATUS_OK);
-          case 113:
-            MSA311_setActiveInterruptDur(MSA311_ACTIVEDUR_2_MS);
-            return (STATUS_OK);
-          case 114:
-            MSA311_setActiveInterruptDur(MSA311_ACTIVEDUR_3_MS);
-            return (STATUS_OK);
-          case 115:
-            MSA311_setActiveInterruptDur(MSA311_ACTIVEDUR_4_MS);
-            return (STATUS_OK);
-          case 116:
-            print_uint8_base10(MSA311_getActiveInterruptDur() + 1);
-            return (STATUS_OK);
-          case 117:
-            eeprom_dump();
-            return (STATUS_OK);
-          */
           default:
             FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
         }
