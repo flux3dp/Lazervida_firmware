@@ -36,9 +36,9 @@ BUILD_DIR = build
 ######################################
 # C sources
 C_SOURCES =  \
-Core/Src/main.c \
-Core/Src/stm32f1xx_it.c \
-Core/Src/stm32f1xx_hal_msp.c \
+Src/main.c \
+Src/stm32f1xx_it.c \
+Src/stm32f1xx_hal_msp.c \
 USB_DEVICE/App/usb_device.c \
 USB_DEVICE/App/usbd_desc.c \
 USB_DEVICE/App/usbd_cdc_if.c \
@@ -68,35 +68,35 @@ Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i2c.c \
 Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim.c \
 Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim_ex.c \
 Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_usart.c \
-Core/Src/system_stm32f1xx.c \
+Src/system_stm32f1xx.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
-Core/Src/coolant_control.c \
-Core/Src/cpu_map.c \
-Core/Src/eeprom.c \
-Core/Src/gcode.c \
-Core/Src/jog.c \
-Core/Src/limits.c \
-Core/Src/motion_control.c \
-Core/Src/nuts_bolts.c \
-Core/Src/planner.c \
-Core/Src/print.c \
-Core/Src/probe.c \
-Core/Src/protocol.c \
-Core/Src/report.c \
-Core/Src/serial.c \
-Core/Src/settings.c \
-Core/Src/spindle_control.c \
-Core/Src/stepper.c \
-Core/Src/system.c \
-Core/Src/sensors.c \
-Core/Src/peripherals.c \
-Core/Src/flux_machine.c \
-Core/Src/debug_serial.c \
-Core/Src/lwrb.c \
-Core/Src/fast_raster_print.c \
+Src/coolant_control.c \
+Src/cpu_map.c \
+Src/eeprom.c \
+Src/gcode.c \
+Src/jog.c \
+Src/limits.c \
+Src/motion_control.c \
+Src/nuts_bolts.c \
+Src/planner.c \
+Src/print.c \
+Src/probe.c \
+Src/protocol.c \
+Src/report.c \
+Src/serial.c \
+Src/settings.c \
+Src/spindle_control.c \
+Src/stepper.c \
+Src/system.c \
+Src/sensors.c \
+Src/peripherals.c \
+Src/flux_machine.c \
+Src/debug_serial.c \
+Src/lwrb.c \
+Src/fast_raster_print.c \
 Drivers/MSA311/Adafruit_MSA311.c
 
 # ASM sources
@@ -157,7 +157,7 @@ AS_INCLUDES =
 C_INCLUDES =  \
 -IUSB_DEVICE/App \
 -IUSB_DEVICE/Target \
--ICore/Inc \
+-IInc \
 -IDrivers/STM32F1xx_HAL_Driver/Inc \
 -IDrivers/STM32F1xx_HAL_Driver/Inc/Legacy \
 -IMiddlewares/ST/STM32_USB_Device_Library/Core/Inc \
