@@ -58,7 +58,7 @@ void flux_periodic_handling() {
   #endif
   if (HAL_GPIO_ReadPin(POWER_BTN_GPIO_Port, POWER_BTN_Pin) == GPIO_PIN_RESET) {
     if(power_btn_triggered) {
-      if(millis() - power_polling_ts > 100 && machine_power_on) {
+      if(millis() - power_polling_ts > 2000 && machine_power_on) {
         NVIC_SystemReset();
       }
     } else {
@@ -300,9 +300,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
       }
       break;
     case GPIO_PIN_9: // POWER BTN
-      if (machine_power_on) {
-        // Software reset (enter power off state)
-        // NVIC_SystemReset();
+      if (HAL_GPIO_ReadPin(POWER_BTN_GPIO_Port, POWER_BTN_Pin) == GPIO_PIN_RESET) {
+        power_btn_triggered = true;
+        power_polling_ts = millis();
+      } else {
+        if(machine_power_on && power_btn_triggered && millis() - power_polling_ts > 100) {
+          NVIC_SystemReset();
+        }
+        power_btn_triggered = false;
       }
       break;
     default:
