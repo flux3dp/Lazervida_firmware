@@ -165,6 +165,9 @@ void protocol_main_loop()
     // =============== FLUX's dedicated code ===============
     
     if (millis() - last_modbus_query > 100) {
+#if STM32F1_BLUE_PILLS
+      HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+#endif
       modbus_query();
       last_modbus_query = millis();
       outputTag += 1;
