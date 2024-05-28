@@ -29,6 +29,9 @@ float tilt_average = 3.07;
 volatile bool machine_power_on = false;
 
 uint32_t last_motor_active = 0;
+bool power_btn_triggered = false;
+uint32_t power_polling_ts = 0;
+bool led_inverse = false;
 
 #define CURRENT_LED_PWM_POWER (htim3.Instance->CCR2)
 
@@ -54,6 +57,19 @@ void flux_periodic_handling() {
     ctrl_line_state_change = 0;
   }
   #endif
+  if (HAL_GPIO_ReadPin(POWER_BTN_GPIO_Port, POWER_BTN_Pin) == GPIO_PIN_RESET) {
+    if(power_btn_triggered) {
+      if(millis() - power_polling_ts > 2000 && machine_power_on) {
+        NVIC_SystemReset();
+      }
+    } else {
+      power_btn_triggered = true;
+      power_polling_ts = millis();
+    }
+  } else {
+    power_btn_triggered = false;
+  }
+
   // Detect change of orientation
   if (settings.disable_tilt_detect != true) {
     if (millis() - MSA311_polling_ts > 120) {
@@ -174,7 +190,7 @@ void reset_power_24v() {
 }
 
 void set_led_mode(LedMode new_mode) {
-  if (led_state.mode == new_mode) {
+  if (led_state.mode == new_mode && new_mode != kOff) {
     return;
   }
   switch (new_mode) {
@@ -197,13 +213,21 @@ void set_led_mode(LedMode new_mode) {
       break;
   }
   led_state.mode = new_mode;
-  CURRENT_LED_PWM_POWER = led_state.duty_cycle;
+  if(led_inverse) {
+    CURRENT_LED_PWM_POWER = 1000 - led_state.duty_cycle;
+  } else {
+    CURRENT_LED_PWM_POWER = led_state.duty_cycle;
+  }
   led_state.last_ts = millis();
 }
 
 void set_led_power(uint32_t val) {
   if (led_state.mode == kManual) {
-    CURRENT_LED_PWM_POWER = val;
+    if(led_inverse) {
+      CURRENT_LED_PWM_POWER = 1000 - val;
+    } else {
+      CURRENT_LED_PWM_POWER = val;
+    } 
   }
 }
 
@@ -221,7 +245,11 @@ void led_handler(uint32_t new_ts) {
           led_state.duty_cycle = 0;
         }
         led_state.last_ts = new_ts;
-        CURRENT_LED_PWM_POWER = led_state.duty_cycle;
+        if(led_inverse) {
+          CURRENT_LED_PWM_POWER = 1000 - led_state.duty_cycle;
+        } else {
+          CURRENT_LED_PWM_POWER = led_state.duty_cycle;
+        }
       }
       break;
     case kBreath:
@@ -232,8 +260,13 @@ void led_handler(uint32_t new_ts) {
           led_state.duty_cycle += 40;
         }
         led_state.last_ts = new_ts;
-        CURRENT_LED_PWM_POWER = led_state.duty_cycle <= 1000 ? 
-                                led_state.duty_cycle : 2000 - led_state.duty_cycle;
+        uint32_t current_t = led_state.duty_cycle <= 1000 ? 
+                             led_state.duty_cycle : 2000 - led_state.duty_cycle;
+        if(led_inverse) {
+          CURRENT_LED_PWM_POWER = 1000 - current_t;
+        } else {
+          CURRENT_LED_PWM_POWER = current_t;
+        }
       }
       break;
     case kManual:
@@ -285,9 +318,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
       }
       break;
     case GPIO_PIN_9: // POWER BTN
-      if (machine_power_on) {
-        // Software reset (enter power off state)
-        NVIC_SystemReset();
+      if (HAL_GPIO_ReadPin(POWER_BTN_GPIO_Port, POWER_BTN_Pin) == GPIO_PIN_RESET) {
+        power_btn_triggered = true;
+        power_polling_ts = millis();
+      } else {
+        if(machine_power_on && power_btn_triggered && millis() - power_polling_ts > 100) {
+          NVIC_SystemReset();
+        }
+        power_btn_triggered = false;
       }
       break;
     default:

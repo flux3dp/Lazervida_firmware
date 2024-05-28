@@ -144,6 +144,19 @@ int main(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(POWER_BTN_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : DETECT_3V3_Pin */
+  GPIO_InitStruct.Pin = DETECT_3V3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(DETECT_3V3_GPIO_Port, &GPIO_InitStruct);
+  if (HAL_GPIO_ReadPin(DETECT_3V3_GPIO_Port, DETECT_3V3_Pin) == GPIO_PIN_SET) {
+    led_inverse = true;
+    HAL_GPIO_WritePin(LED_PWM_GPIO_Port, LED_PWM_Pin, GPIO_PIN_RESET);
+  } else {
+    led_inverse = false;
+  }
+
   uint32_t ts = millis();
   uint8_t stage = 0;
   // Polling for pin state change
@@ -755,6 +768,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(USB_Detect_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : DETECT_3V3_Pin */
+  GPIO_InitStruct.Pin = DETECT_3V3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(DETECT_3V3_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : STEP_EN_INV_Pin MS1_Pin */
   GPIO_InitStruct.Pin = STEP_EN_INV_Pin|MS1_Pin;
