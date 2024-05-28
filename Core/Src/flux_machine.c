@@ -31,6 +31,7 @@ volatile bool machine_power_on = false;
 uint32_t last_motor_active = 0;
 bool power_btn_triggered = false;
 uint32_t power_polling_ts = 0;
+bool led_inverse = false;
 
 #define CURRENT_LED_PWM_POWER (htim3.Instance->CCR2)
 
@@ -189,7 +190,7 @@ void reset_power_24v() {
 }
 
 void set_led_mode(LedMode new_mode) {
-  if (led_state.mode == new_mode) {
+  if (led_state.mode == new_mode && new_mode != kOff) {
     return;
   }
   switch (new_mode) {
@@ -212,13 +213,21 @@ void set_led_mode(LedMode new_mode) {
       break;
   }
   led_state.mode = new_mode;
-  CURRENT_LED_PWM_POWER = led_state.duty_cycle;
+  if(led_inverse) {
+    CURRENT_LED_PWM_POWER = 1000 - led_state.duty_cycle;
+  } else {
+    CURRENT_LED_PWM_POWER = led_state.duty_cycle;
+  }
   led_state.last_ts = millis();
 }
 
 void set_led_power(uint32_t val) {
   if (led_state.mode == kManual) {
-    CURRENT_LED_PWM_POWER = val;
+    if(led_inverse) {
+      CURRENT_LED_PWM_POWER = 1000 - val;
+    } else {
+      CURRENT_LED_PWM_POWER = val;
+    } 
   }
 }
 
@@ -236,7 +245,11 @@ void led_handler(uint32_t new_ts) {
           led_state.duty_cycle = 0;
         }
         led_state.last_ts = new_ts;
-        CURRENT_LED_PWM_POWER = led_state.duty_cycle;
+        if(led_inverse) {
+          CURRENT_LED_PWM_POWER = 1000 - led_state.duty_cycle;
+        } else {
+          CURRENT_LED_PWM_POWER = led_state.duty_cycle;
+        }
       }
       break;
     case kBreath:
@@ -247,8 +260,13 @@ void led_handler(uint32_t new_ts) {
           led_state.duty_cycle += 40;
         }
         led_state.last_ts = new_ts;
-        CURRENT_LED_PWM_POWER = led_state.duty_cycle <= 1000 ? 
-                                led_state.duty_cycle : 2000 - led_state.duty_cycle;
+        uint32_t current_t = led_state.duty_cycle <= 1000 ? 
+                             led_state.duty_cycle : 2000 - led_state.duty_cycle;
+        if(led_inverse) {
+          CURRENT_LED_PWM_POWER = 1000 - current_t;
+        } else {
+          CURRENT_LED_PWM_POWER = current_t;
+        }
       }
       break;
     case kManual:

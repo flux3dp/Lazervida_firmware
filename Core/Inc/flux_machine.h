@@ -34,6 +34,7 @@ typedef enum {
 //extern volatile cmd_process_unlocker_t cmd_process_unlocker;
 
 extern volatile bool machine_power_on;
+extern bool led_inverse;
 
 void flux_periodic_handling();
 
